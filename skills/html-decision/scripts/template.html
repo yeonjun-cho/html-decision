@@ -1,130 +1,53 @@
-# HTML Template
-
-모든 Tier 공통 — HTML 구조 + base CSS + base JS.
-
----
-
-## 1. 구조 (strict)
-
-```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>{고민 주제}</title>
-  <style>{§2 CSS}</style>
-</head>
-<body>
-  <header>
-    <h1>{고민 주제}</h1>
-    <div class="meta">{날짜} · {브랜치 / context summary}</div>
-  </header>
-
-  <!-- 결정점 카드 (per Q) -->
-  <section class="question" id="q1" data-qid="q1">
-    <h2 class="q-title">Q1. {질문}</h2>
-    <p class="q-desc">{한 줄 설명}</p>
-
-    <!-- q-context block (모든 Tier 의무) — 왜 이 결정 필요한지 1-2 문장 -->
-    <div class="q-context">
-      {배경 / 의존성 / 결정 영향 — 1-2 문장}
-    </div>
-
-    <!-- 옵션 -->
-    <label class="option recommended">
-      <input type="radio" name="q1" value="opt1">
-      <span class="opt-label">옵션 1 <span class="recommended-tag">권장</span></span>
-      <span class="opt-reason">{1줄 이유}</span>
-      <!-- option-detail (default 박제 — strategy 결정 시 의무) -->
-      <details class="option-detail">
-        <summary>자세히</summary>
-        <div class="detail-body">
-          <p class="pros"><strong>Pros</strong>: {장점}</p>
-          <p class="cons"><strong>Cons</strong>: {단점}</p>
-          <p class="example"><strong>예시</strong>: {구체 예시 / 결과}</p>
-        </div>
-      </details>
-    </label>
-    <label class="option">
-      <input type="radio" name="q1" value="opt2">
-      <span class="opt-label">옵션 2</span>
-      <!-- option-detail 동일 구조 박제 (Pros / Cons / 예시) -->
-    </label>
-    <!-- ... 옵션 3~5 동일 구조 ... -->
-    <label class="option other-option">
-      <input type="radio" name="q1" value="other">
-      <span class="opt-label">기타 (직접 입력)</span>
-    </label>
-    <textarea class="other-input" data-for="q1" rows="3" placeholder="직접 입력..."></textarea>
-
-    <!-- (T2+) 코멘트 — 옵션 1·2·… 선택 시 reveal / 기타 선택 시 hide -->
-    <div class="comment-wrap" data-for-comment="q1">
-      <label class="comment-label">코멘트 (선택, 부연/조건/맥락)</label>
-      <textarea class="comment-input" rows="2" placeholder="선택 이유 / 추가 조건 / 부연 설명"></textarea>
-    </div>
-  </section>
-
-  <!-- ... 추가 결정점 ... -->
-
-  <!-- 출력 영역 — outline card -->
-  <section class="output-section" id="submit">
-    <h3>📋 결정 결과 → format 선택 → 복사</h3>
-    <p class="submit-help">[생성] 클릭 → 결과 확인 → [복사] 클릭 → Claude 에 붙여넣기.</p>
-    <div class="output-buttons">
-      <button class="gen active" onclick="generate('md')" id="btn-md">📄 MD 생성</button>
-      <!-- T2+ 추가: <button class="gen" onclick="generate('json')" id="btn-json">📦 JSON 생성</button> -->
-      <!-- T3 추가: <button class="gen" onclick="generate('prompt')" id="btn-prompt">💬 prompt 생성</button> -->
-      <span class="button-divider"></span>
-      <button class="action" onclick="copyOutput()">📋 복사</button>
-      <span class="button-divider"></span>
-      <button class="reset" onclick="resetAnswers()">🔄 초기화</button>
-    </div>
-    <div class="output-wrap">
-      <button class="hover-copy" onclick="copyOutput()" title="복사">📋 복사</button>
-      <pre id="output">format 생성 후 표시</pre>
-    </div>
-  </section>
-
-  <!-- toast (복사 / 초기화 feedback) -->
-  <div class="toast" id="toast">✅ 복사 완료</div>
-
-  <script>{§3 JS}</script>
-</body>
-</html>
-```
-
-### Tier 차이 요약
-
-| 영역 | T1 | T2 | T3 |
-|---|---|---|---|
-| **q-context block** | ✅ default | ✅ | ✅ |
-| **option-detail (Pros/Cons/예시 `<details>`)** | ✅ default (단순 binary 시 생략 허용) | ✅ default | ✅ 의무 (strategy 결정 시) |
-| **toggle-all-details JS** | ✅ default (`<details>` ≥ 1 자동 inject) | ✅ | ✅ |
-| 코멘트 textarea | ❌ | ✅ | ✅ |
-| 권장 옵션 강조 | ✅ (단순) | ✅ | ✅ |
-| 생성 버튼 | MD 만 | MD/JSON | MD/JSON/prompt |
-| phase grouping (`<h2 class="phase">`) | ❌ | ❌ | ✅ (N ≥ 8) |
-| sticky sidebar + scroll spy | ❌ | ❌ | ✅ (N ≥ 5) |
-| localStorage 보존 | ❌ | ❌ | ✅ (N ≥ 5) |
-| ack-area / section-intro / preview-panel | ❌ | ❌ | situational (`widgets.md` §12-14) |
-| Mermaid / Chart.js / Sortable | ❌ | ❌ | 필요 시 (`widgets.md` 참조) |
-
----
-
-## 2. Base CSS
-
-```css
+  <title>{{TITLE}}</title>
+  {{MERMAID_SCRIPT}}
+  <style>
 :root {
   --bg: #f9fafb; --card: #fff; --border: #e5e7eb; --text: #1f2937;
   --muted: #6b7280; --accent: #2563eb; --rec: #10b981; --rec-bg: #ecfdf5;
 }
 * { box-sizing: border-box; }
+
 body { font-family: system-ui, -apple-system, "Noto Sans KR", "Segoe UI", sans-serif;
-       max-width: 920px; margin: 40px auto; padding: 0 16px;
        background: var(--bg); color: var(--text); line-height: 1.6; }
-/* T3 sticky sidebar 박제 시 body layout 은 widgets.md §6 override */
-h1 { margin: 0 0 6px; font-size: 1.7em; border-bottom: 3px solid var(--accent);
-     padding-bottom: 10px; }
+body.simple { max-width: 920px; margin: 40px auto; padding: 0 16px; }
+body.with-sidebar { display: flex; min-height: 100vh;
+                     max-width: none; margin: 0; padding: 0; }
+
+.sidebar { position: sticky; top: 0; height: 100vh; width: 260px;
+           flex-shrink: 0; padding: 24px 20px; background: var(--card);
+           border-right: 1px solid var(--border); overflow-y: auto;
+           font-size: 0.88em; }
+.sidebar h3 { font-size: 0.95em; color: #4b5563; margin: 18px 0 8px;
+              text-transform: uppercase; letter-spacing: 0.05em; }
+.sidebar h3:first-child { margin-top: 0; }
+
+.progress-wrap { margin-bottom: 20px; }
+.progress { background: var(--border); height: 8px; border-radius: 4px;
+            overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, var(--rec), #059669);
+                width: 0%; transition: width 0.3s; }
+.progress-text { font-size: 0.85em; color: var(--muted);
+                 margin-top: 4px; display: block; }
+
+.nav-list { list-style: none; padding: 0; margin: 0; }
+.nav-q { display: block; padding: 5px 12px; color: #4b5563;
+         text-decoration: none; font-size: 0.85em;
+         border-left: 3px solid transparent; transition: all 0.15s; }
+.nav-q:hover { background: #f3f4f6; color: var(--text); }
+.nav-q.active { background: var(--rec-bg); border-left-color: var(--rec);
+                color: #065f46; font-weight: 500; }
+.nav-q.answered::before { content: "✓ "; color: var(--rec); font-weight: 600; }
+
+.main { flex: 1; padding: 40px 50px 80px; overflow-x: hidden; min-width: 0; }
+body.with-sidebar .main { max-width: calc(100% - 260px); }
+body.simple .main { max-width: 100%; padding: 0; }
+
+h1 { margin: 0 0 6px; font-size: 1.7em;
+     border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
 h2.phase { font-size: 1.3em; margin-top: 2.4em; color: #1e40af;
            padding-top: 12px; border-top: 1px solid var(--border); }
 .meta { color: var(--muted); font-size: 0.9em; margin-bottom: 1.8em; }
@@ -133,6 +56,23 @@ code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px;
 table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
 th { background: #f3f4f6; font-weight: 600; }
+
+.ack-area { background: var(--rec-bg); border: 1px solid #6ee7b7;
+            border-radius: 8px; padding: 16px 22px; margin-bottom: 22px;
+            font-size: 0.92em; }
+.ack-area h4 { margin: 0 0 8px; color: #065f46; }
+.ack-area p { margin: 4px 0; color: #047857; }
+.ack-area code { background: #d1fae5; color: #065f46; }
+
+.flow-area { background: var(--card); border: 1px solid var(--border);
+             border-radius: 8px; padding: 20px; margin-bottom: 22px; }
+.flow-area h4 { margin: 0 0 12px; color: #4b5563; font-size: 0.9em;
+                text-transform: uppercase; letter-spacing: 0.04em; }
+.mermaid-wrap { background: var(--bg); padding: 12px; border-radius: 6px; }
+
+.section-intro { background: #fef3c7; border-left: 4px solid #f59e0b;
+                 padding: 14px 18px; margin-bottom: 22px; border-radius: 4px;
+                 font-size: 0.94em; }
 
 .question { background: var(--card); border: 1px solid var(--border);
             border-radius: 8px; padding: 20px 24px; margin-bottom: 18px;
@@ -160,7 +100,6 @@ th { background: #f3f4f6; font-weight: 600; }
                    padding: 2px 9px; border-radius: 10px; font-size: 0.72em;
                    margin-left: 8px; font-weight: 500; vertical-align: middle; }
 
-/* option-detail (Pros/Cons/예시) — default 박제 */
 .option-detail { width: 100%; margin: 8px 0 0 28px; }
 .option-detail summary { color: var(--accent); font-size: 0.85em;
                           margin-bottom: 4px; }
@@ -177,13 +116,12 @@ th { background: #f3f4f6; font-weight: 600; }
 .option-detail code { background: #e0e7ff; color: #1e40af;
                       padding: 1px 5px; border-radius: 3px; }
 
-/* toggle-all-details 버튼 (JS auto-inject — §3 base JS) */
 .toggle-all-details { position: absolute; top: 14px; right: 18px;
                       background: transparent; border: 1px solid #d1d5db;
                       color: #4b5563; padding: 4px 10px; font-size: 0.76em;
                       border-radius: 4px; cursor: pointer; font-weight: 500;
                       margin: 0; }
-.toggle-all-details:hover { background: #f3f4f6; color: #1f2937;
+.toggle-all-details:hover { background: #f3f4f6; color: var(--text);
                             border-color: #9ca3af; }
 .toggle-all-details.all-open { background: var(--rec-bg); color: #065f46;
                                 border-color: #6ee7b7; }
@@ -195,7 +133,6 @@ textarea.other-input { width: 100%; min-height: 60px; padding: 8px 12px;
 textarea.other-input:focus { outline: none; border-color: var(--accent);
                              box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
 
-/* T2+ 코멘트 — default hidden, .visible 시 reveal */
 .comment-wrap { display: none; margin-top: 10px; padding-top: 8px;
                 border-top: 1px dashed var(--border); }
 .comment-wrap.visible { display: block; }
@@ -209,7 +146,6 @@ textarea.comment-input:focus { outline: none; border-color: var(--rec);
                                box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
                                background: white; }
 
-/* details/summary — disclosure arrow 통합 */
 details summary { cursor: pointer; list-style: none; display: inline-flex;
                   align-items: center; gap: 6px; user-select: none; }
 details summary::-webkit-details-marker { display: none; }
@@ -217,7 +153,18 @@ details summary::before { content: "▶"; display: inline-block;
                           font-size: 0.7em; transition: transform 0.15s; }
 details[open] summary::before { transform: rotate(90deg); }
 
-/* output-section = outline card (모든 Tier default) */
+.preview-panel { margin-top: 14px; padding: 14px 18px; background: #eff6ff;
+                 border-left: 4px solid var(--accent); border-radius: 4px;
+                 font-size: 0.9em; }
+.preview-panel h5 { margin: 0 0 8px; color: #1e40af; }
+.preview-panel .empty { color: var(--muted); font-style: italic; }
+.preview-panel table { width: 100%; border-collapse: collapse; background: white;
+                       font-size: 0.88em; }
+.preview-panel th, .preview-panel td { padding: 6px 10px;
+                                        border-bottom: 1px solid #dbeafe;
+                                        text-align: left; }
+.preview-panel th { background: #dbeafe; font-weight: 600; color: #1e40af; }
+
 .output-section { margin-top: 2.5em; padding: 24px; background: var(--card);
                   border: 2px solid var(--accent); border-radius: 10px; }
 .output-section h3 { margin-top: 0; color: #1e40af; }
@@ -231,7 +178,6 @@ button { padding: 10px 20px; background: var(--accent); color: white;
          border: none; border-radius: 5px; font-size: 0.95em; cursor: pointer;
          font-weight: 500; transition: background 0.15s; }
 button:hover { background: #1d4ed8; }
-/* 다중 button 스타일 — .gen (outline) / .action (녹색) / .reset (회색) */
 button.gen { background: white; color: var(--accent);
              border: 1px solid var(--accent); }
 button.gen:hover { background: #eff6ff; }
@@ -254,25 +200,76 @@ button.reset:hover { background: #4b5563; }
 .output-wrap:hover .hover-copy { opacity: 1; }
 .hover-copy:hover { background: rgba(255,255,255,0.25); }
 
-/* toast (CSS class 박제 — 복사 / 초기화 feedback) */
 .toast { position: fixed; bottom: 20px; right: 20px; background: var(--rec);
          color: white; padding: 12px 20px; border-radius: 6px;
          font-size: 0.9em; font-weight: 500; opacity: 0;
          transition: opacity 0.3s; pointer-events: none;
          box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
 .toast.show { opacity: 1; }
-```
 
----
+@media (max-width: 900px) {
+  body.with-sidebar { flex-direction: column; }
+  body.with-sidebar .sidebar { position: relative; width: 100%; height: auto;
+             border-right: 0; border-bottom: 1px solid var(--border); }
+  body.with-sidebar .main { max-width: 100%; padding: 24px; }
+  .q-title { padding-right: 0; }
+  .toggle-all-details { position: relative; top: auto; right: auto;
+                        display: inline-block; margin-bottom: 8px; }
+}
+  </style>
+</head>
+<body class="{{LAYOUT_CLASS}}">
 
-## 3. Base JS
+{{SIDEBAR_BLOCK}}
 
-```javascript
-const SOURCE_HTML = "{filepath 박제 — 출력 file 의 자신 path}";
-const TOPIC = "{고민 주제}";
-const DATE = "{YYYY-MM-DD}";
+<main class="main">
 
-// 1. 기타 textarea input 시 자동 라디오 체크 + 코멘트 hide
+<header>
+  <h1>{{H1}}</h1>
+  <div class="meta">{{META}}</div>
+</header>
+
+{{ACK_SECTION}}
+{{FLOW_SECTION}}
+{{SECTION_INTRO}}
+
+{{QUESTIONS_BLOCK}}
+
+<section class="output-section" id="submit">
+  <h3>📋 결정 결과 → format 선택 → 복사</h3>
+  <p class="submit-help">[생성] 클릭 → 결과 확인 → [복사] 클릭 → Claude 에 붙여넣기.</p>
+  <div class="output-buttons">
+{{OUTPUT_BUTTONS}}
+    <span class="button-divider"></span>
+    <button class="action" onclick="copyOutput()">📋 복사</button>
+    <span class="button-divider"></span>
+    <button class="reset" onclick="resetAnswers()">🔄 초기화</button>
+  </div>
+  <div class="output-wrap">
+    <button class="hover-copy" onclick="copyOutput()" title="복사">📋 복사</button>
+    <pre id="output">format 생성 후 표시</pre>
+  </div>
+</section>
+
+<div class="toast" id="toast">✅ 복사 완료</div>
+
+</main>
+
+<script>
+const SOURCE_HTML = "{{SOURCE_HTML}}";
+const TOPIC = "{{TOPIC}}";
+const DATE = "{{DATE}}";
+const STORAGE_KEY = `html-decision:${SOURCE_HTML}`;
+const TOTAL_Q = {{TOTAL_Q}};
+const USE_LOCALSTORAGE = {{USE_LOCALSTORAGE}};
+
+{{PREVIEW_DATA_JS}}
+
+if (typeof mermaid !== 'undefined') {
+  try { mermaid.initialize({ startOnLoad: true, theme: 'default' }); }
+  catch (e) { console.error('mermaid init failed', e); }
+}
+
 document.querySelectorAll('textarea.other-input').forEach(input => {
   input.addEventListener('input', () => {
     const qId = input.getAttribute('data-for');
@@ -282,7 +279,6 @@ document.querySelectorAll('textarea.other-input').forEach(input => {
   });
 });
 
-// 2. 코멘트 reveal — T2+ 에서만 의미 있음. T1 = .comment-wrap 자체 없음
 function updateCommentVisibility(qId) {
   const wrap = document.querySelector(`.comment-wrap[data-for-comment="${qId}"]`);
   if (!wrap) return;
@@ -301,7 +297,6 @@ function updateCommentVisibility(qId) {
 document.querySelectorAll('input[type="radio"], input[type="checkbox"]')
   .forEach(i => i.addEventListener('change', () => updateCommentVisibility(i.name)));
 
-// 3. 답 수집
 function collectAnswers() {
   const answers = {};
   document.querySelectorAll('.question').forEach(q => {
@@ -335,7 +330,6 @@ function getComment(qid) {
   return (wrap.querySelector('textarea.comment-input')?.value || '').trim();
 }
 
-// 4. generate — T1 = MD 만, T2 = MD/JSON, T3 = MD/JSON/prompt
 function generate(format) {
   const answers = collectAnswers();
   let text = '';
@@ -343,7 +337,6 @@ function generate(format) {
   else if (format === 'json') text = toJSON(answers);
   else if (format === 'prompt') text = toPrompt(answers);
   document.getElementById('output').textContent = text;
-  // 활성 format button 표시
   document.querySelectorAll('.output-buttons button.gen').forEach(b => b.classList.remove('active'));
   document.getElementById('btn-' + format)?.classList.add('active');
 }
@@ -367,7 +360,40 @@ function toMarkdown(answers) {
   return md;
 }
 
-// 5. 복사 / 초기화 — toast feedback (CSS class 박제)
+function toJSON(answers) {
+  const decisions = {};
+  for (const [qid, a] of Object.entries(answers)) {
+    const d = { type: a.type };
+    if (Array.isArray(a.value)) d.values = a.value;
+    else d.value = a.value;
+    if (a.comment && !a.isOther) d.comment = a.comment;
+    if (a.isOther) d.is_other = true;
+    decisions[qid] = d;
+  }
+  return JSON.stringify({
+    topic: TOPIC, source_html: SOURCE_HTML, date: DATE, decisions
+  }, null, 2);
+}
+
+function toPrompt(answers) {
+  let p = `이전 HTML 결정 캔버스 (\`${SOURCE_HTML}\`) 결과를 정리한 내용입니다.\n\n`;
+  p += `주제: ${TOPIC}\n날짜: ${DATE}\n\n결정 사항:\n\n`;
+  for (const a of Object.values(answers)) {
+    p += `${a.title}\n`;
+    if (Array.isArray(a.value)) {
+      p += `→ ${a.value.join(', ')}\n`;
+    } else {
+      p += `→ ${a.value || '(미선택)'}\n`;
+    }
+    if (a.comment && !a.isOther) {
+      p += `  부연: ${a.comment.replace(/\n/g, ' ')}\n`;
+    }
+    p += '\n';
+  }
+  p += '이 결정들을 기반으로 다음을 도와주세요: [사용자가 채울 영역]\n';
+  return p;
+}
+
 function copyOutput() {
   const text = document.getElementById('output').textContent;
   if (!text || text === 'format 생성 후 표시' || text === '답안 초기화됨') {
@@ -401,10 +427,13 @@ function resetAnswers() {
   document.querySelectorAll('.comment-wrap.visible')
     .forEach(w => w.classList.remove('visible'));
   document.getElementById('output').textContent = '답안 초기화됨';
+  if (USE_LOCALSTORAGE) localStorage.removeItem(STORAGE_KEY);
+  updateProgress();
+  if (typeof updateAllPreviews === 'function') updateAllPreviews();
   showToast('🔄 초기화 완료');
 }
 
-// 6. toggle-all-details auto-inject (모든 Tier default — <details> ≥ 1 있는 Q 마다)
+// toggle-all-details auto-inject
 window.addEventListener('load', () => {
   document.querySelectorAll('.question').forEach(q => {
     if (q.querySelectorAll('details').length === 0) return;
@@ -423,12 +452,111 @@ window.addEventListener('load', () => {
     q.appendChild(btn);
   });
 });
-```
 
-T2 / T3 추가 함수 (`toJSON`, `toPrompt`) 는 `output-formats.md` 참조.
+// scroll spy (sidebar 박제 시)
+if (document.querySelector('.sidebar')) {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('.nav-q').forEach(a => a.classList.remove('active'));
+        const navQ = document.querySelector(`.nav-q[data-q="${e.target.dataset.qid}"]`);
+        if (navQ) navQ.classList.add('active');
+      }
+    });
+  }, { threshold: 0.4, rootMargin: '-100px 0px -50% 0px' });
+  document.querySelectorAll('.question').forEach(q => observer.observe(q));
+}
 
----
+function updateProgress() {
+  let answered = 0;
+  document.querySelectorAll('.question').forEach(q => {
+    const qid = q.dataset.qid;
+    const checked = q.querySelector('input:checked');
+    const otherText = (q.querySelector('textarea.other-input')?.value || '').trim();
+    const ok = checked && (checked.value !== 'other' || otherText.length > 0);
+    if (ok) answered++;
+    const navQ = document.querySelector(`.nav-q[data-q="${qid}"]`);
+    if (navQ) navQ.classList.toggle('answered', ok);
+  });
+  const pct = TOTAL_Q > 0 ? Math.round(answered / TOTAL_Q * 100) : 0;
+  const bar = document.getElementById('prog-bar');
+  const txt = document.getElementById('prog-text');
+  if (bar) bar.style.width = pct + '%';
+  if (txt) txt.textContent = `${answered}/${TOTAL_Q} 답함 (${pct}%)`;
+}
+document.addEventListener('change', updateProgress);
+document.addEventListener('input', updateProgress);
+window.addEventListener('load', updateProgress);
 
-## 4. 출력 file 의 자신 path 박제
+// localStorage (T3 + N≥5 시 활성)
+if (USE_LOCALSTORAGE) {
+  function saveState() {
+    const state = {};
+    document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked')
+      .forEach(i => state[`${i.name}:${i.value}`] = true);
+    document.querySelectorAll('textarea').forEach(t => {
+      const key = t.dataset.for || t.closest('.comment-wrap')?.dataset.forComment;
+      if (key && t.value) state[`text:${key}:${t.classList.contains('comment-input') ? 'c' : 'o'}`] = t.value;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+  function loadState() {
+    try {
+      const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      Object.entries(state).forEach(([key, val]) => {
+        if (key.startsWith('text:')) {
+          const [, id, kind] = key.split(':');
+          const sel = kind === 'c'
+            ? `.comment-wrap[data-for-comment="${id}"] textarea`
+            : `textarea[data-for="${id}"]`;
+          const t = document.querySelector(sel);
+          if (t) t.value = val;
+        } else {
+          const [name, value] = key.split(':');
+          const i = document.querySelector(`input[name="${name}"][value="${value}"]`);
+          if (i) { i.checked = true; updateCommentVisibility(name); }
+        }
+      });
+      updateProgress();
+      if (typeof updateAllPreviews === 'function') updateAllPreviews();
+    } catch {}
+  }
+  window.addEventListener('load', loadState);
+  document.addEventListener('change', saveState);
+  document.addEventListener('input', saveState);
+}
 
-JS 안 `const SOURCE_HTML = "..."` 에 생성 시점에 결정된 file path 박제. MD 출력 header 의 `**출처 HTML**: \`${SOURCE_HTML}\`` 에서 활용.
+// preview-panel (옵션 박제된 question 만 활성)
+function updateAllPreviews() {
+  document.querySelectorAll('.preview-panel[data-for-preview]').forEach(p => {
+    const qid = p.dataset.forPreview;
+    updatePreviewFor(qid);
+  });
+}
+function updatePreviewFor(qid) {
+  const panel = document.querySelector(`.preview-panel[data-for-preview="${qid}"] .preview-content`);
+  if (!panel) return;
+  const sel = document.querySelector(`input[name="${qid}"]:checked`);
+  const previewData = window.PREVIEW_DATA?.[qid];
+  if (!previewData) return;
+  if (!sel || sel.value === 'other') {
+    panel.innerHTML = '<p class="empty">옵션 선택 시 영향 영역 view</p>';
+    return;
+  }
+  const data = previewData[sel.value];
+  if (!data) { panel.innerHTML = '<p class="empty">preview 없음</p>'; return; }
+  let html = '<strong>' + data.title + '</strong><table>';
+  data.rows.forEach(r => { html += '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>'; });
+  html += '</table>';
+  panel.innerHTML = html;
+}
+document.querySelectorAll('.preview-panel[data-for-preview]').forEach(p => {
+  const qid = p.dataset.forPreview;
+  document.querySelectorAll(`input[name="${qid}"]`)
+    .forEach(i => i.addEventListener('change', () => updatePreviewFor(qid)));
+});
+window.addEventListener('load', updateAllPreviews);
+</script>
+
+</body>
+</html>

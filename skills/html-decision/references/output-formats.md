@@ -1,10 +1,10 @@
-# Output Formats
+# Output Formats — paste-back parse rule
 
-T2+ 에서 읽기. MD / JSON / prompt 세 format 의 정합 spec + paste-back parse rule.
+★ MD/JSON/prompt 출력 *생성 로직* = `scripts/template.html` 안 embedded JS (`toMarkdown` / `toJSON` / `toPrompt`). 이 문서는 **paste-back 시 Claude 가 흡수하는 rule** 만 담당.
 
 ---
 
-## 1. MD format (기본 의무 — 모든 Tier)
+## 1. MD format 예시 (template JS 출력)
 
 ```markdown
 <!-- html-decision-result -->
@@ -15,8 +15,6 @@ T2+ 에서 읽기. MD / JSON / prompt 세 format 의 정합 spec + paste-back pa
 
 ---
 
-## {Phase 명}  ← T3 phase grouping 시만
-
 ### Q1. {질문}
 - **답**: {단일 답}
 - **코멘트**:
@@ -26,35 +24,26 @@ T2+ 에서 읽기. MD / JSON / prompt 세 format 의 정합 spec + paste-back pa
 **답**:
 - {답 1}
 - {답 2}
-**코멘트**:
-{텍스트}
 ```
 
 ### 1.1 핵심 rule
 
-- **첫 줄 magic comment** `<!-- html-decision-result -->` 의무 (paste-back 인식 마커)
-- **출처 HTML 박제** 의무 (세션 끊김 대비 — 다른 시점 paste-back 시 식별)
+- **첫 줄 magic comment** `<!-- html-decision-result -->` (paste-back 인식 마커)
+- **출처 HTML 박제** (세션 끊김 대비)
 - **단일 답**: `- **답**: {답}`
 - **다중 답**: `**답**:\n- {답 1}\n- {답 2}`
-- **코멘트**: 옵션 (1·2·…) 선택 + 사용자 입력 값 존재 시 한정 박제 (빈 코멘트 = 생략)
-- **기타 선택 시**: `- **답**: 기타: {free-form}` 한정 박제 (mutual exclusive — 코멘트 생략)
-- **멀티라인 보존**: textarea `\n` 그대로 박제 (multi-line strict)
-
-### 1.2 mutual exclusive (paste-back parse 단순화)
-
-| 선택 | 박제 |
-|---|---|
-| 옵션 1·2·… + 코멘트 | `**답**: {옵션}` + `**코멘트**: {부연}` |
-| 기타 | `**답**: 기타: {free-form}` (코멘트 X) |
+- **코멘트**: 옵션 (1·2·…) 선택 + 입력 값 존재 시 한정 박제
+- **기타 선택 시**: `- **답**: 기타: {free-form}` 박제 (코멘트 생략 — mutual exclusive)
+- **멀티라인 보존**: textarea `\n` 그대로 박제
 
 ---
 
-## 2. JSON format (T2+)
+## 2. JSON format 예시
 
 ```json
 {
-  "topic": "{주제}",
-  "source_html": "{filepath}",
+  "topic": "...",
+  "source_html": "...",
   "date": "YYYY-MM-DD",
   "decisions": {
     "q1": {
@@ -65,42 +54,15 @@ T2+ 에서 읽기. MD / JSON / prompt 세 format 의 정합 spec + paste-back pa
     },
     "q2": {
       "type": "checkbox",
-      "values": ["{답 1}", "{답 2}"],
-      "comment": "..."
-    },
-    "q3": {
-      "type": "slider",
-      "value": 7,
-      "max": 10
+      "values": ["{답 1}", "{답 2}"]
     }
   }
 }
 ```
 
-### JS 구현
-
-```javascript
-function toJSON(answers) {
-  const decisions = {};
-  for (const [qid, a] of Object.entries(answers)) {
-    const d = { type: a.type };
-    if (Array.isArray(a.value)) d.values = a.value;
-    else d.value = a.value;
-    if (a.comment && !a.isOther) d.comment = a.comment;
-    if (a.isOther) d.is_other = true;
-    decisions[qid] = d;
-  }
-  return JSON.stringify({
-    topic: TOPIC, source_html: SOURCE_HTML, date: DATE, decisions
-  }, null, 2);
-}
-```
-
 ---
 
-## 3. prompt format (T3)
-
-MD 의 자연어 풀어쓰기 + 다음 step instruction 박제. 새 Claude 세션 시작 시 직접 prompt 로 사용.
+## 3. prompt format 예시
 
 ```
 이전 HTML 결정 캔버스 (`{filepath}`) 결과를 정리한 내용입니다.
@@ -114,34 +76,7 @@ Q1. {질문}
 → {답}
   부연: {코멘트}
 
-Q2. {질문}
-→ {답 1}, {답 2}
-  부연: {코멘트}
-
 이 결정들을 기반으로 다음을 도와주세요: [사용자가 채울 영역]
-```
-
-### JS 구현
-
-```javascript
-function toPrompt(answers) {
-  let p = `이전 HTML 결정 캔버스 (\`${SOURCE_HTML}\`) 결과를 정리한 내용입니다.\n\n`;
-  p += `주제: ${TOPIC}\n날짜: ${DATE}\n\n결정 사항:\n\n`;
-  for (const a of Object.values(answers)) {
-    p += `${a.title}\n`;
-    if (Array.isArray(a.value)) {
-      p += `→ ${a.value.join(', ')}\n`;
-    } else {
-      p += `→ ${a.value || '(미선택)'}\n`;
-    }
-    if (a.comment && !a.isOther) {
-      p += `  부연: ${a.comment.replace(/\n/g, ' ')}\n`;
-    }
-    p += '\n';
-  }
-  p += '이 결정들을 기반으로 다음을 도와주세요: [사용자가 채울 영역]\n';
-  return p;
-}
 ```
 
 ---
@@ -158,7 +93,7 @@ function toPrompt(answers) {
 4. block 안:
    - `**답**:` line = 답 본문
    - `**답**:` 뒤 list (`- {답}`) = 다중 답
-   - `**코멘트**:` line = 부연 (없으면 skip)
+   - `**코멘트**:` line = 부연 (있을 시 본문 흡수)
    - multi-line 코멘트 = 다음 빈 줄 또는 `**답**` / `### Q` 만날 때까지
 
 ### 4.2 답 종류 식별
@@ -169,7 +104,7 @@ function toPrompt(answers) {
 
 ### 4.3 다음 step
 
-paste-back 흡수 후 사용자가 명시 요청한 다음 행동 수행. 흔한 패턴:
+paste-back 흡수 후 사용자 명시 요청 수행. 흔한 패턴:
 
 - 새 코드 작성 / 수정
 - 다음 결정 cycle 시작 (`/html-decision` 재호출)
