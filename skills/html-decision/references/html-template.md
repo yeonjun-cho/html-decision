@@ -25,17 +25,32 @@
     <h2 class="q-title">Q1. {질문}</h2>
     <p class="q-desc">{한 줄 설명}</p>
 
+    <!-- q-context block (모든 Tier 의무) — 왜 이 결정 필요한지 1-2 문장 -->
+    <div class="q-context">
+      {배경 / 의존성 / 결정 영향 — 1-2 문장}
+    </div>
+
     <!-- 옵션 -->
     <label class="option recommended">
       <input type="radio" name="q1" value="opt1">
       <span class="opt-label">옵션 1 <span class="recommended-tag">권장</span></span>
       <span class="opt-reason">{1줄 이유}</span>
+      <!-- option-detail (default 박제 — strategy 결정 시 의무) -->
+      <details class="option-detail">
+        <summary>자세히</summary>
+        <div class="detail-body">
+          <p class="pros"><strong>Pros</strong>: {장점}</p>
+          <p class="cons"><strong>Cons</strong>: {단점}</p>
+          <p class="example"><strong>예시</strong>: {구체 예시 / 결과}</p>
+        </div>
+      </details>
     </label>
     <label class="option">
       <input type="radio" name="q1" value="opt2">
       <span class="opt-label">옵션 2</span>
+      <!-- option-detail 동일 구조 박제 (Pros / Cons / 예시) -->
     </label>
-    <!-- ... -->
+    <!-- ... 옵션 3~5 동일 구조 ... -->
     <label class="option other-option">
       <input type="radio" name="q1" value="other">
       <span class="opt-label">기타 (직접 입력)</span>
@@ -75,12 +90,16 @@
 
 | 영역 | T1 | T2 | T3 |
 |---|---|---|---|
+| **q-context block** | ✅ default | ✅ | ✅ |
+| **option-detail (Pros/Cons/예시 `<details>`)** | ✅ default (단순 binary 시 생략 허용) | ✅ default | ✅ 의무 (strategy 결정 시) |
+| **toggle-all-details JS** | ✅ default (`<details>` ≥ 1 자동 inject) | ✅ | ✅ |
 | 코멘트 textarea | ❌ | ✅ | ✅ |
 | 권장 옵션 강조 | ✅ (단순) | ✅ | ✅ |
 | 생성 버튼 | MD 만 | MD/JSON | MD/JSON/prompt |
-| phase grouping (`<h2 class="phase">`) | ❌ | ❌ | ✅ |
-| sticky sidebar + scroll spy | ❌ | ❌ | ✅ |
-| localStorage 보존 | ❌ | ❌ | ✅ |
+| phase grouping (`<h2 class="phase">`) | ❌ | ❌ | ✅ (N ≥ 8) |
+| sticky sidebar + scroll spy | ❌ | ❌ | ✅ (N ≥ 5) |
+| localStorage 보존 | ❌ | ❌ | ✅ (N ≥ 5) |
+| ack-area / section-intro / preview-panel | ❌ | ❌ | situational (`widgets.md` §12-14) |
 | Mermaid / Chart.js / Sortable | ❌ | ❌ | 필요 시 (`widgets.md` 참조) |
 
 ---
@@ -102,8 +121,11 @@ header h1 { margin: 0 0 6px; font-size: 1.6em; }
 .question { background: var(--card); border: 1px solid var(--border);
             border-radius: 8px; padding: 18px 22px; margin-bottom: 18px;
             position: relative; }
-.q-title { margin: 0 0 4px; font-size: 1.1em; }
-.q-desc { margin: 0 0 12px; color: var(--muted); font-size: 0.92em; }
+.q-title { margin: 0 0 4px; font-size: 1.1em; padding-right: 110px; }
+.q-desc { margin: 0 0 6px; color: var(--muted); font-size: 0.92em; }
+.q-context { margin: 0 0 14px; padding: 8px 12px; background: #f9fafb;
+             border-left: 3px solid #d1d5db; border-radius: 3px;
+             color: #4b5563; font-size: 0.9em; }
 
 .option { display: flex; align-items: flex-start; gap: 8px;
           padding: 10px 12px; border-radius: 5px; cursor: pointer;
@@ -117,6 +139,30 @@ header h1 { margin: 0 0 6px; font-size: 1.6em; }
                padding-left: 9px; }
 .recommended-tag { background: var(--rec); color: white; padding: 2px 8px;
                    border-radius: 10px; font-size: 0.7em; margin-left: 6px; }
+
+/* option-detail (Pros/Cons/예시) — default 박제 */
+.option-detail { width: 100%; margin: 6px 0 0 24px; }
+.option-detail summary { color: var(--accent); font-size: 0.85em; }
+.option-detail .detail-body { margin: 6px 0 0 0; padding: 10px 14px;
+                               background: #f9fafb; border: 1px solid var(--border);
+                               border-radius: 5px; font-size: 0.88em; }
+.option-detail .detail-body p { margin: 4px 0; }
+.option-detail .pros { color: #065f46; }
+.option-detail .cons { color: #991b1b; }
+.option-detail .example { color: var(--muted); font-style: italic; }
+.option-detail code { background: #e0e7ff; color: #1e40af;
+                      padding: 1px 5px; border-radius: 3px; }
+
+/* toggle-all-details 버튼 (JS auto-inject — §3 base JS) */
+.toggle-all-details { position: absolute; top: 14px; right: 18px;
+                      background: transparent; border: 1px solid #d1d5db;
+                      color: #4b5563; padding: 4px 10px; font-size: 0.76em;
+                      border-radius: 4px; cursor: pointer; font-weight: 500;
+                      margin: 0; }
+.toggle-all-details:hover { background: #f3f4f6; color: #1f2937;
+                            border-color: #9ca3af; }
+.toggle-all-details.all-open { background: var(--rec-bg); color: #065f46;
+                                border-color: #6ee7b7; }
 
 textarea.other-input { width: 100%; min-height: 60px; padding: 8px 12px;
                        border: 1px solid #d1d5db; border-radius: 4px;
@@ -298,6 +344,26 @@ function resetAnswers() {
     .forEach(w => w.classList.remove('visible'));
   document.getElementById('output').textContent = '생성 후 표시';
 }
+
+// 6. toggle-all-details auto-inject (모든 Tier default — <details> ≥ 1 있는 Q 마다)
+window.addEventListener('load', () => {
+  document.querySelectorAll('.question').forEach(q => {
+    if (q.querySelectorAll('details').length === 0) return;
+    const btn = document.createElement('button');
+    btn.className = 'toggle-all-details';
+    btn.textContent = '모두 펴기';
+    btn.type = 'button';
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const list = q.querySelectorAll('details');
+      const allOpen = Array.from(list).every(d => d.open);
+      list.forEach(d => { d.open = !allOpen; });
+      btn.textContent = allOpen ? '모두 펴기' : '모두 접기';
+      btn.classList.toggle('all-open', !allOpen);
+    };
+    q.appendChild(btn);
+  });
+});
 ```
 
 T2 / T3 추가 함수 (`toJSON`, `toPrompt`) 는 `output-formats.md` 참조.

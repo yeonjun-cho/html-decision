@@ -36,9 +36,9 @@ T2+ 에서 읽기. MD / JSON / prompt 세 format 의 정합 spec + paste-back pa
 - **출처 HTML 박제** 의무 (세션 끊김 대비 — 다른 시점 paste-back 시 식별)
 - **단일 답**: `- **답**: {답}`
 - **다중 답**: `**답**:\n- {답 1}\n- {답 2}`
-- **코멘트**: 옵션 (1·2·…) 선택 시 + 사용자 입력 있을 때만 박제. 빈 코멘트 = 박제 X
-- **기타 선택 시**: `- **답**: 기타: {free-form}` — 코멘트 박제 X (mutual exclusive)
-- **멀티라인 보존**: textarea `\n` 그대로. 한 줄 처리 / truncate 금지
+- **코멘트**: 옵션 (1·2·…) 선택 + 사용자 입력 값 존재 시 한정 박제 (빈 코멘트 = 생략)
+- **기타 선택 시**: `- **답**: 기타: {free-form}` 한정 박제 (mutual exclusive — 코멘트 생략)
+- **멀티라인 보존**: textarea `\n` 그대로 박제 (multi-line strict)
 
 ### 1.2 mutual exclusive (paste-back parse 단순화)
 

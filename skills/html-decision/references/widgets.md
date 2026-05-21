@@ -1,8 +1,8 @@
 # Widgets & Visualizations
 
-**T3 (결정점 8+) 전용**. T1/T2 는 읽지 말 것.
+**T3 전용** (SKILL.md §2.1 trigger 충족 시). T1/T2 는 `html-template.md` (+ T2 는 `output-formats.md`) 만 읽기.
 
-phase grouping + advanced widget (slider/sortable/toggle) + 시각화 (Mermaid/Chart.js) + sticky sidebar + localStorage 복원.
+phase grouping + slider widget + 시각화 (Mermaid/Chart.js) + sticky sidebar + localStorage 복원 + ack/section-intro/preview-panel.
 
 ---
 
@@ -13,12 +13,12 @@ phase grouping + advanced widget (slider/sortable/toggle) + 시각화 (Mermaid/C
 | 단일 답 | radio + 기타 + 코멘트 | `**답**: {단일}` |
 | 다중 답 | checkbox + 기타 + 코멘트 | `**답**:\n- ...` list |
 | 정량 평가 (확신도/위험도) | slider (range) + 코멘트 | `**답**: 7/10` |
-| binary on/off | toggle + 코멘트 | `**답**: on` |
-| 순서 / 우선순위 | drag (Sortable.js) | `**답**:\n1. ...\n2. ...` |
+| binary on/off | radio (`yes`/`no`) + 코멘트 | `**답**: yes` |
+| 순서 / 우선순위 | checkbox 다중 + 코멘트에 순서 기재 | `**답**:\n- ...` (코멘트에 순서) |
 | 조건부 follow-up | multi-step reveal | 답 + 후속 결정 |
 | 자유 텍스트 | textarea only | `**답**: {자유}` |
 
-코멘트 = 옵션/값 선택 시 reveal. "기타" 또는 미선택 = hide.
+코멘트 = 옵션/값 선택 시 reveal. "기타" 또는 미선택 = 숨김.
 
 ---
 
@@ -45,64 +45,6 @@ function updateCommentVisibilityForSlider(qid) {
   const wrap = document.querySelector(`.comment-wrap[data-for-comment="${qid}"]`);
   if (wrap) wrap.classList.add('visible');
 }
-```
-
----
-
-## 3. toggle (binary)
-
-```html
-<label class="toggle">
-  <input type="checkbox" name="q1" data-toggle>
-  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-  <span class="toggle-label">on / off</span>
-</label>
-```
-
-CSS:
-```css
-.toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
-.toggle input { display: none; }
-.toggle-track { width: 38px; height: 22px; background: #d1d5db; border-radius: 11px;
-                position: relative; transition: background 0.2s; }
-.toggle-thumb { width: 18px; height: 18px; background: white; border-radius: 50%;
-                position: absolute; top: 2px; left: 2px; transition: left 0.2s; }
-.toggle input:checked + .toggle-track { background: var(--accent); }
-.toggle input:checked + .toggle-track .toggle-thumb { left: 18px; }
-```
-
----
-
-## 4. priority (Sortable.js)
-
-CDN: `https://cdn.jsdelivr.net/npm/sortablejs@1.15/Sortable.min.js`
-
-```html
-<ul class="priority-list" data-qid="q1">
-  <li data-value="a">옵션 A</li>
-  <li data-value="b">옵션 B</li>
-  <li data-value="c">옵션 C</li>
-</ul>
-```
-
-```javascript
-document.querySelectorAll('.priority-list').forEach(list => {
-  Sortable.create(list, { animation: 150 });
-});
-// collectAnswers 안 priority 처리
-const priorityList = q.querySelector('.priority-list');
-if (priorityList) {
-  const order = Array.from(priorityList.children).map(li => li.dataset.value);
-  answers[qid] = { ...answers[qid], values: order, type: 'priority' };
-}
-```
-
-MD 출력:
-```markdown
-**답** (우선순위):
-1. 옵션 A
-2. 옵션 B
-3. 옵션 C
 ```
 
 ---
@@ -248,14 +190,14 @@ resetAnswers 안 `localStorage.removeItem(STORAGE_KEY)` 추가.
 
 ---
 
-## 8. 시각화 (선택 — 영향 명확 시)
+## 8. 시각화 (영향 명확 시 한정 박제)
 
 | 영역 | rule |
 |---|---|
-| 옵션 비교 | `<table>` — 3+ 옵션 시 권장 |
-| 흐름 / 결정 cascading | **Mermaid flowchart** (CDN) — 결정 의존 명확 시 |
-| 결정 분포 | **Chart.js doughnut/bar** (CDN) — 결정점 5+ 시 |
-| 영향 file / scope | inline SVG file tree 또는 list — 3+ file 영향 시 |
+| 옵션 비교 | `<table>` — 3+ 옵션 시 박제 |
+| 흐름 / 결정 cascading | Mermaid flowchart → **§15 사용 spec 참조** |
+| 결정 분포 | **Chart.js doughnut/bar** (CDN) — 결정점 5+ 시 박제 |
+| 영향 file / scope | inline SVG file tree 또는 list — 3+ file 영향 시 박제 |
 | before / after | side-by-side panel |
 | 코드 예시 | `<pre><code>` |
 | 긴 context | `<details><summary>` 접기 (CSS § html-template) |
@@ -270,29 +212,226 @@ grace degradation: CDN load 실패 시 기본 form 동작 보존 의무.
 
 ## 9. toggle-all-details 버튼 (details 다중 시)
 
-```javascript
-window.addEventListener('load', () => {
-  document.querySelectorAll('.question').forEach(q => {
-    if (q.querySelectorAll('details').length === 0) return;
-    const btn = document.createElement('button');
-    btn.className = 'toggle-all-details';
-    btn.textContent = '모두 펴기';
-    btn.onclick = () => {
-      const list = q.querySelectorAll('details');
-      const allOpen = Array.from(list).every(d => d.open);
-      list.forEach(d => d.open = !allOpen);
-      btn.textContent = allOpen ? '모두 펴기' : '모두 접기';
-    };
-    q.appendChild(btn);
-  });
-});
+→ **모든 Tier default 박제** — `html-template.md` §2 CSS + §3 JS 안에 이미 포함. T3 에서는 별도 처리 불필요.
+
+---
+
+## 10. option-detail (옵션 카드 안 Pros/Cons/예시)
+
+→ **모든 Tier default** — HTML 구조 + CSS 는 `html-template.md` 안 박제 완료.
+
+### 10.1 T3 strategy 결정 시 의무 영역
+
+`<details class="option-detail">` 안 **3 필드** 박제:
+
+```html
+<details class="option-detail">
+  <summary>자세히</summary>
+  <div class="detail-body">
+    <p class="pros"><strong>Pros</strong>: {장점 1-2 문장}</p>
+    <p class="cons"><strong>Cons</strong>: {단점 1-2 문장}</p>
+    <p class="example"><strong>예시</strong>: {구체 결과 / 수치 / 코드}</p>
+  </div>
+</details>
+```
+
+- **Pros / Cons** = 결정 영향 본질 (의무)
+- **예시** = 결과 구체화 — code / 수치 / file 영향 영역 (가능 시)
+
+### 10.2 단순 케이스 — 1줄 reason 으로 갈음
+
+옵션 = 단순 binary 또는 명확한 차이 시 `.opt-reason` 1줄로 갈음 박제:
+
+```html
+<span class="opt-reason">{1줄 이유}</span>
+```
+
+판단 기준: Pros 와 Cons 가 *같은* 문장 안 자연히 담기면 1줄 reason 박제. *서로 다른* 영역이면 `<details>` 박제.
+
+---
+
+## 11. q-context block (왜 이 결정 필요)
+
+→ **모든 Tier default** — HTML 구조 + CSS 는 `html-template.md` 안 박제 완료.
+
+### 11.1 박제 구조
+
+```html
+<p class="q-desc">{한 줄 설명}</p>
+<div class="q-context">
+  {배경 / 의존성 / 결정 영향 — 1-2 문장}
+</div>
+```
+
+### 11.2 q-desc vs q-context 차이
+
+- **q-desc** = 질문 그 자체의 한 줄 부연 (예: "단일 PR vs phased")
+- **q-context** = *왜* 이 결정 필요한지 (예: "Step 1-4 의 file 분포: references 5 / sub-agent 4 / skill body 2 / docs 5-6. 의존 sequence = Step 1 → 2 → 3 → 4.")
+
+발동: context 가 *명시* 가능한 경우 한정 박제 (단순 선호도 = 생략).
+
+---
+
+## 12. ack-area (선행 결정 박제 — T3 trigger #4)
+
+연속 cycle 안 *이전 결정* 정리 highlight. working memo / 이전 결정 cross-ref.
+
+```html
+<section id="ack">
+  <div class="ack-area">
+    <h4>📥 이전 N 결정 확정 ack — working memo 박제</h4>
+    <p>working memo: <code>{working memo path}</code> §{section} 안 결정 통합 표 박제.</p>
+    <p>{결정 요약 1-2 문장 — 영역 별 카운트 / 핵심 결과}</p>
+    <p>★ 본 결정 = 위 결정 후 다음 step 진행 전 사전 확정 의무 영역.</p>
+  </div>
+</section>
 ```
 
 CSS:
+
 ```css
-.toggle-all-details { position: absolute; top: 16px; right: 18px;
-                      background: transparent; border: 1px solid #d1d5db;
-                      color: #4b5563; padding: 4px 10px; font-size: 0.78em;
-                      border-radius: 4px; cursor: pointer; font-weight: 500; }
-.toggle-all-details:hover { background: #f3f4f6; color: #1f2937; }
+.ack-area { background: #ecfdf5; border: 1px solid #6ee7b7;
+            border-radius: 8px; padding: 16px 22px; margin-bottom: 22px;
+            font-size: 0.92em; }
+.ack-area h4 { margin: 0 0 8px; color: #065f46; }
+.ack-area p { margin: 4px 0; color: #047857; }
+.ack-area code { background: #d1fae5; color: #065f46; }
 ```
+
+발동: T3 trigger #4 (선행 결정 ack 필요) 시 한정 박제.
+
+---
+
+## 13. section-intro (영역 소개 highlight box)
+
+결정점 grouping / 영역 안내. 노란 highlight box.
+
+```html
+<div class="section-intro">
+  Q1 = {영역 1} / Q2 = {영역 2} / Q3 = {영역 3} (★ {강조 메모}).
+</div>
+```
+
+CSS:
+
+```css
+.section-intro { background: #fef3c7; border-left: 4px solid #f59e0b;
+                 padding: 14px 18px; margin-bottom: 22px; border-radius: 4px;
+                 font-size: 0.94em; }
+```
+
+발동: 결정점 grouping (phase 분리 또는 영역 별 묶음) 시 한정 박제.
+
+---
+
+## 14. preview-panel (옵션 영향 live preview)
+
+옵션 선택 시 영향 영역 즉시 view — table / Mermaid highlight / file list.
+
+### 14.1 HTML 구조
+
+```html
+<div class="preview-panel">
+  <h5>📋 선택 시 영향 (live)</h5>
+  <div id="q1-preview">
+    <p class="empty">옵션 선택 시 영향 영역 view</p>
+  </div>
+</div>
+```
+
+CSS:
+
+```css
+.preview-panel { margin-top: 14px; padding: 14px 18px; background: #eff6ff;
+                 border-left: 4px solid var(--accent); border-radius: 4px;
+                 font-size: 0.9em; }
+.preview-panel h5 { margin: 0 0 8px; color: #1e40af; }
+.preview-panel .empty { color: var(--muted); font-style: italic; }
+.preview-panel table { width: 100%; border-collapse: collapse; background: white;
+                       font-size: 0.88em; }
+.preview-panel th, .preview-panel td { padding: 6px 10px;
+                                        border-bottom: 1px solid #dbeafe;
+                                        text-align: left; }
+.preview-panel th { background: #dbeafe; font-weight: 600; color: #1e40af; }
+```
+
+### 14.2 JS — 옵션 별 preview 데이터 + update 함수
+
+```javascript
+const Q1_PREVIEWS = {
+  'opt1': { title: '{옵션 1 결과}',
+            rows: [['{영역}', '{값}'], ['{영역}', '{값}']] },
+  'opt2': { title: '{옵션 2 결과}',
+            rows: [['{영역}', '{값}']] },
+};
+
+function updateQ1Preview() {
+  const sel = document.querySelector('input[name="q1"]:checked');
+  const panel = document.getElementById('q1-preview');
+  if (!sel) {
+    panel.innerHTML = '<p class="empty">옵션 선택 시 영향 영역 view</p>';
+    return;
+  }
+  const data = Q1_PREVIEWS[sel.value];
+  if (!data) { panel.innerHTML = '<p class="empty">preview 없음</p>'; return; }
+  let html = '<strong>' + data.title + '</strong><table>';
+  data.rows.forEach(r => {
+    html += '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>';
+  });
+  html += '</table>';
+  panel.innerHTML = html;
+}
+
+document.querySelectorAll('input[name="q1"]')
+  .forEach(i => i.addEventListener('change', updateQ1Preview));
+window.addEventListener('load', updateQ1Preview);
+```
+
+발동: 옵션 영향 *예측 가능* + 영향 영역이 구체적일 때 (예: PR 분포 / file 영향 / 수치 변경) 한정 박제.
+
+---
+
+## 15. Mermaid flowchart usage
+
+§8 CDN load 후 의존 sequence / timeline / cascading 시각화.
+
+### 15.1 HTML 구조
+
+```html
+<section id="flow">
+  <div class="flow-area">
+    <h4>🔄 {Q 영역} timeline</h4>
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+    A[Step 1<br/>{영역}<br/>{수치}] --> B[Step 2<br/>{영역}]
+    B --> C[Step 3<br/>{영역}]
+    style A fill:#dbeafe,stroke:#1e40af
+    style B fill:#fef3c7,stroke:#f59e0b
+    style C fill:#ecfdf5,stroke:#10b981
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+CSS:
+
+```css
+.flow-area { background: var(--card); border: 1px solid var(--border);
+             border-radius: 8px; padding: 20px; margin-bottom: 22px; }
+.flow-area h4 { margin: 0 0 12px; color: #4b5563; font-size: 0.9em;
+                text-transform: uppercase; letter-spacing: 0.04em; }
+.mermaid-wrap { background: #f9fafb; padding: 12px; border-radius: 6px; }
+```
+
+JS init:
+
+```javascript
+if (typeof mermaid !== 'undefined') {
+  try { mermaid.initialize({ startOnLoad: true, theme: 'default' }); }
+  catch (e) { console.error('mermaid init failed', e); }
+}
+```
+
+발동: 의존 sequence (A → B → C) 가 *명확* + 시각화 가치 있을 때 한정 박제. 단순 list 로 갈음 가능 시 list 만 박제 (grace degradation).
