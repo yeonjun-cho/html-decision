@@ -1,0 +1,18 @@
+# 생성된 결정 캔버스 (사용자 작업 산출물) — repo 에 포함 X
+.claude-history/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

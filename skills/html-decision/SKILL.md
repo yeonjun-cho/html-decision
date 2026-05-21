@@ -1,6 +1,6 @@
 ---
 name: html-decision
-description: 사용자의 고민·결정사항을 HTML 결정 캔버스로 변환. 결정점 식별 → 옵션 도출 → JSON spec 작성 → `scripts/render.py` 가 HTML 렌더링. HTML file 응답 (채팅 = file 경로 + 3-5줄 안내 한정). 결과 = `.claude-history/html-decision/` 안 저장 + SendUserFile 전달. 사용자가 "고민이다", "결정 도와줘", "어떻게 할지 모르겠어" 같은 표현을 쓰거나 결정점이 2개 이상 보이면 발동.
+description: 사용자가 `/html-decision` 슬래시 명령으로 명시 호출 시 동작. 결정점을 HTML 결정 캔버스로 변환 (옵션 도출 → Pros/Cons → Mermaid/sidebar/preview-panel 시각화 → MD 결과 회수). JSON spec 작성 → `scripts/render.py` 가 HTML 렌더링. HTML file 응답 (채팅 = file 경로 + 3-5줄 안내 한정). 결과 = `.claude-history/html-decision/` 안 저장 + SendUserFile 전달. ★ 자동 발동 X — 명시 슬래시 호출만.
 argument-hint: <고민 설명>
 ---
 
