@@ -90,58 +90,127 @@ function toMarkdown(answers) {
 
 ---
 
-## 6. sticky sidebar + scroll spy (결정점 8+)
+## 6. sticky sidebar + scroll spy (N ≥ 5 시 의무)
+
+★ 발동 시 body layout = **full-width flex** (base CSS 의 `max-width: 920px` override). 260px 흰 sidebar + flex main.
+
+### 6.1 HTML 구조
 
 ```html
-<aside class="sidebar">
-  <div class="progress">진행: <span id="progress-count">0</span> / <span id="progress-total">N</span></div>
-  <nav class="toc">
-    <a href="#q1" data-qid="q1">Q1. {짧은 제목}</a>
-    <a href="#q2" data-qid="q2">Q2. ...</a>
-    <!-- ... -->
-  </nav>
-</aside>
+<body>
+  <aside class="sidebar">
+    <h3>진행</h3>
+    <div class="progress-wrap">
+      <div class="progress"><div class="progress-bar" id="prog-bar"></div></div>
+      <span class="progress-text" id="prog-text">0/{N} 답함</span>
+    </div>
+
+    <h3>네비게이션</h3>
+    <nav>
+      <ul class="nav-list">
+        <!-- (선택) ack / flow section anchor -->
+        <li><a href="#ack" class="nav-q">📥 이전 결정 ack</a></li>
+        <li><a href="#flow" class="nav-q">🔄 timeline</a></li>
+        <!-- 결정점 anchor -->
+        <li style="margin-top: 8px;"><a href="#q1" class="nav-q" data-q="q1">Q1. {짧은 제목}</a></li>
+        <li><a href="#q2" class="nav-q" data-q="q2">Q2. ...</a></li>
+        <!-- ... -->
+        <!-- 결과 추출 anchor -->
+        <li style="padding-top: 10px;"><a href="#submit" class="nav-q" style="color: var(--accent); font-weight: 600;">✏️ 결과 추출</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <!-- header / ack / flow / questions / output-section -->
+  </main>
+</body>
 ```
+
+### 6.2 CSS — v1-grade sidebar (★ base CSS override)
 
 ```css
-body { display: grid; grid-template-columns: 220px 1fr; gap: 32px;
-       max-width: 1180px; }
-.sidebar { position: sticky; top: 20px; align-self: start;
-           max-height: calc(100vh - 40px); overflow: auto; }
-.toc a { display: block; padding: 6px 10px; color: var(--muted);
-         text-decoration: none; border-left: 2px solid transparent;
-         font-size: 0.88em; }
-.toc a.active { color: var(--accent); border-left-color: var(--accent);
-                background: #eff6ff; }
-@media (max-width: 900px) { body { grid-template-columns: 1fr; }
-                            .sidebar { display: none; } }
+/* sidebar 박제 시 body layout override — base CSS 의 max-width:920px / margin:40px auto 무효 */
+body { display: flex; min-height: 100vh; max-width: none; margin: 0; padding: 0;
+       background: var(--bg); }
+
+.sidebar { position: sticky; top: 0; height: 100vh; width: 260px;
+           flex-shrink: 0; padding: 24px 20px; background: var(--card);
+           border-right: 1px solid var(--border); overflow-y: auto;
+           font-size: 0.88em; }
+.sidebar h3 { font-size: 0.95em; color: #4b5563; margin: 18px 0 8px;
+              text-transform: uppercase; letter-spacing: 0.05em; }
+.sidebar h3:first-child { margin-top: 0; }
+
+.progress-wrap { margin-bottom: 20px; }
+.progress { background: var(--border); height: 8px; border-radius: 4px;
+            overflow: hidden; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, var(--rec), #059669);
+                width: 0%; transition: width 0.3s; }
+.progress-text { font-size: 0.85em; color: var(--muted);
+                 margin-top: 4px; display: block; }
+
+.nav-list { list-style: none; padding: 0; margin: 0; }
+.nav-q { display: block; padding: 5px 12px; color: #4b5563;
+         text-decoration: none; font-size: 0.85em;
+         border-left: 3px solid transparent; transition: all 0.15s; }
+.nav-q:hover { background: #f3f4f6; color: var(--text); }
+.nav-q.active { background: var(--rec-bg); border-left-color: var(--rec);
+                color: #065f46; font-weight: 500; }
+.nav-q.answered::before { content: "✓ "; color: var(--rec); font-weight: 600; }
+
+.main { flex: 1; max-width: calc(100% - 260px); padding: 40px 50px 80px;
+        overflow-x: hidden; }
+.question { scroll-margin-top: 20px; }
+
+@media (max-width: 900px) {
+  body { flex-direction: column; }
+  .sidebar { position: relative; width: 100%; height: auto;
+             border-right: 0; border-bottom: 1px solid var(--border); }
+  .main { max-width: 100%; padding: 24px; }
+  .q-title { padding-right: 0; }
+  .toggle-all-details { position: relative; top: auto; right: auto;
+                        display: inline-block; margin-bottom: 8px; }
+}
 ```
 
+### 6.3 JS — scroll spy + visual progress + answered marker
+
 ```javascript
+const TOTAL_Q = document.querySelectorAll('.question').length;
+
 // scroll spy
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if (e.isIntersecting) {
-      document.querySelectorAll('.toc a').forEach(a => a.classList.remove('active'));
-      document.querySelector(`.toc a[data-qid="${e.target.dataset.qid}"]`)?.classList.add('active');
+      document.querySelectorAll('.nav-q').forEach(a => a.classList.remove('active'));
+      const navQ = document.querySelector(`.nav-q[data-q="${e.target.dataset.qid}"]`);
+      if (navQ) navQ.classList.add('active');
     }
   });
-}, { rootMargin: '-30% 0px -60% 0px' });
+}, { threshold: 0.4, rootMargin: '-100px 0px -50% 0px' });
 document.querySelectorAll('.question').forEach(q => observer.observe(q));
 
-// progress
+// visual progress + answered marker
 function updateProgress() {
-  const total = document.querySelectorAll('.question').length;
-  const answered = Array.from(document.querySelectorAll('.question')).filter(q => {
-    return q.querySelector('input:checked') ||
-           (q.querySelector('textarea.other-input')?.value || '').trim();
-  }).length;
-  document.getElementById('progress-count').textContent = answered;
-  document.getElementById('progress-total').textContent = total;
+  let answered = 0;
+  document.querySelectorAll('.question').forEach(q => {
+    const qid = q.dataset.qid;
+    const checked = q.querySelector('input:checked');
+    const otherText = (q.querySelector('textarea.other-input')?.value || '').trim();
+    const ok = checked && (checked.value !== 'other' || otherText.length > 0);
+    if (ok) answered++;
+
+    const navQ = document.querySelector(`.nav-q[data-q="${qid}"]`);
+    if (navQ) navQ.classList.toggle('answered', ok);
+  });
+  const pct = Math.round(answered / TOTAL_Q * 100);
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `${answered}/${TOTAL_Q} 답함 (${pct}%)`;
 }
 document.addEventListener('change', updateProgress);
 document.addEventListener('input', updateProgress);
-updateProgress();
+window.addEventListener('load', updateProgress);
 ```
 
 ---

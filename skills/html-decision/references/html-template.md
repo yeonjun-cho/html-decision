@@ -66,20 +66,27 @@
 
   <!-- ... 추가 결정점 ... -->
 
-  <!-- 출력 영역 -->
-  <section class="output-section">
+  <!-- 출력 영역 — outline card -->
+  <section class="output-section" id="submit">
+    <h3>📋 결정 결과 → format 선택 → 복사</h3>
+    <p class="submit-help">[생성] 클릭 → 결과 확인 → [복사] 클릭 → Claude 에 붙여넣기.</p>
     <div class="output-buttons">
-      <button onclick="generate('md')">📄 MD 생성</button>
-      <!-- T2+ 추가: <button onclick="generate('json')">📦 JSON 생성</button> -->
-      <!-- T3 추가: <button onclick="generate('prompt')">💬 prompt 생성</button> -->
-      <button onclick="copyOutput()">📋 복사</button>
-      <button onclick="resetAnswers()">🔄 초기화</button>
+      <button class="gen active" onclick="generate('md')" id="btn-md">📄 MD 생성</button>
+      <!-- T2+ 추가: <button class="gen" onclick="generate('json')" id="btn-json">📦 JSON 생성</button> -->
+      <!-- T3 추가: <button class="gen" onclick="generate('prompt')" id="btn-prompt">💬 prompt 생성</button> -->
+      <span class="button-divider"></span>
+      <button class="action" onclick="copyOutput()">📋 복사</button>
+      <span class="button-divider"></span>
+      <button class="reset" onclick="resetAnswers()">🔄 초기화</button>
     </div>
     <div class="output-wrap">
-      <button class="hover-copy" onclick="copyOutput()" title="복사">📋</button>
-      <pre id="output">생성 후 표시</pre>
+      <button class="hover-copy" onclick="copyOutput()" title="복사">📋 복사</button>
+      <pre id="output">format 생성 후 표시</pre>
     </div>
   </section>
+
+  <!-- toast (복사 / 초기화 feedback) -->
+  <div class="toast" id="toast">✅ 복사 완료</div>
 
   <script>{§3 JS}</script>
 </body>
@@ -112,41 +119,58 @@
   --muted: #6b7280; --accent: #2563eb; --rec: #10b981; --rec-bg: #ecfdf5;
 }
 * { box-sizing: border-box; }
-body { font-family: system-ui, "Noto Sans KR", sans-serif; max-width: 920px;
-       margin: 40px auto; padding: 0 16px; background: var(--bg); color: var(--text);
-       line-height: 1.55; }
-header h1 { margin: 0 0 6px; font-size: 1.6em; }
-.meta { color: var(--muted); font-size: 0.88em; margin-bottom: 24px; }
+body { font-family: system-ui, -apple-system, "Noto Sans KR", "Segoe UI", sans-serif;
+       max-width: 920px; margin: 40px auto; padding: 0 16px;
+       background: var(--bg); color: var(--text); line-height: 1.6; }
+/* T3 sticky sidebar 박제 시 body layout 은 widgets.md §6 override */
+h1 { margin: 0 0 6px; font-size: 1.7em; border-bottom: 3px solid var(--accent);
+     padding-bottom: 10px; }
+h2.phase { font-size: 1.3em; margin-top: 2.4em; color: #1e40af;
+           padding-top: 12px; border-top: 1px solid var(--border); }
+.meta { color: var(--muted); font-size: 0.9em; margin-bottom: 1.8em; }
+code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px;
+       font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 0.88em; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+th { background: #f3f4f6; font-weight: 600; }
 
 .question { background: var(--card); border: 1px solid var(--border);
-            border-radius: 8px; padding: 18px 22px; margin-bottom: 18px;
-            position: relative; }
-.q-title { margin: 0 0 4px; font-size: 1.1em; padding-right: 110px; }
+            border-radius: 8px; padding: 20px 24px; margin-bottom: 18px;
+            position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            scroll-margin-top: 20px; }
+.q-title { margin: 0 0 4px; font-size: 1.08em; font-weight: 600;
+           color: #111827; padding-right: 110px; }
 .q-desc { margin: 0 0 6px; color: var(--muted); font-size: 0.92em; }
 .q-context { margin: 0 0 14px; padding: 8px 12px; background: #f9fafb;
              border-left: 3px solid #d1d5db; border-radius: 3px;
              color: #4b5563; font-size: 0.9em; }
 
 .option { display: flex; align-items: flex-start; gap: 8px;
-          padding: 10px 12px; border-radius: 5px; cursor: pointer;
-          flex-wrap: wrap; }
-.option:hover { background: #f3f4f6; }
-.option input { margin-top: 4px; }
-.opt-label { font-weight: 500; }
+          padding: 10px 14px; margin: 6px 0; border-radius: 6px;
+          border: 1px solid transparent; cursor: pointer; flex-wrap: wrap;
+          transition: background 0.1s, border-color 0.1s; }
+.option:hover { background: #f3f4f6; border-color: var(--border); }
+.option input { margin-top: 4px; flex-shrink: 0; }
+.opt-label { font-weight: 500; flex: 1; }
 .opt-reason { width: 100%; padding-left: 24px; color: var(--muted);
-              font-size: 0.85em; margin-top: 2px; }
-.recommended { background: var(--rec-bg); border-left: 3px solid var(--rec);
-               padding-left: 9px; }
-.recommended-tag { background: var(--rec); color: white; padding: 2px 8px;
-                   border-radius: 10px; font-size: 0.7em; margin-left: 6px; }
+              font-size: 0.88em; margin-top: 4px; }
+.recommended { background: var(--rec-bg); border-color: #6ee7b7; }
+.recommended:hover { border-color: var(--rec); }
+.recommended-tag { display: inline-block; background: var(--rec); color: white;
+                   padding: 2px 9px; border-radius: 10px; font-size: 0.72em;
+                   margin-left: 8px; font-weight: 500; vertical-align: middle; }
 
 /* option-detail (Pros/Cons/예시) — default 박제 */
-.option-detail { width: 100%; margin: 6px 0 0 24px; }
-.option-detail summary { color: var(--accent); font-size: 0.85em; }
+.option-detail { width: 100%; margin: 8px 0 0 28px; }
+.option-detail summary { color: var(--accent); font-size: 0.85em;
+                          margin-bottom: 4px; }
+.option-detail summary:hover { text-decoration: underline; }
 .option-detail .detail-body { margin: 6px 0 0 0; padding: 10px 14px;
                                background: #f9fafb; border: 1px solid var(--border);
                                border-radius: 5px; font-size: 0.88em; }
-.option-detail .detail-body p { margin: 4px 0; }
+.option-detail .detail-body h5 { margin: 0 0 6px; font-size: 0.95em;
+                                  color: #1e40af; }
+.option-detail .detail-body p { margin: 6px 0; }
 .option-detail .pros { color: #065f46; }
 .option-detail .cons { color: #991b1b; }
 .option-detail .example { color: var(--muted); font-style: italic; }
@@ -193,24 +217,50 @@ details summary::before { content: "▶"; display: inline-block;
                           font-size: 0.7em; transition: transform 0.15s; }
 details[open] summary::before { transform: rotate(90deg); }
 
-.output-section { margin-top: 28px; }
-.output-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.output-buttons button { padding: 9px 18px; background: var(--accent);
-                         color: white; border: none; border-radius: 5px;
-                         cursor: pointer; font-size: 0.92em; }
-.output-buttons button:hover { background: #1d4ed8; }
-.output-buttons button:last-child { background: #6b7280; }
-.output-wrap { position: relative; }
+/* output-section = outline card (모든 Tier default) */
+.output-section { margin-top: 2.5em; padding: 24px; background: var(--card);
+                  border: 2px solid var(--accent); border-radius: 10px; }
+.output-section h3 { margin-top: 0; color: #1e40af; }
+.output-section .submit-help { color: var(--muted); margin: 0 0 14px;
+                                font-size: 0.93em; }
+.output-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+                  align-items: center; }
+.button-divider { width: 1px; height: 28px; background: var(--border);
+                  margin: 0 4px; }
+button { padding: 10px 20px; background: var(--accent); color: white;
+         border: none; border-radius: 5px; font-size: 0.95em; cursor: pointer;
+         font-weight: 500; transition: background 0.15s; }
+button:hover { background: #1d4ed8; }
+/* 다중 button 스타일 — .gen (outline) / .action (녹색) / .reset (회색) */
+button.gen { background: white; color: var(--accent);
+             border: 1px solid var(--accent); }
+button.gen:hover { background: #eff6ff; }
+button.gen.active { background: var(--accent); color: white; }
+button.action { background: var(--rec); }
+button.action:hover { background: #059669; }
+button.reset { background: #6b7280; padding: 10px 16px; }
+button.reset:hover { background: #4b5563; }
+
+.output-wrap { position: relative; margin-top: 6px; }
 #output { background: #1f2937; color: #f9fafb; padding: 16px;
-          border-radius: 6px; white-space: pre-wrap; font-size: 0.88em;
+          border-radius: 6px; white-space: pre-wrap; font-size: 0.85em;
           font-family: ui-monospace, "SF Mono", Menlo, monospace;
-          max-height: 500px; overflow: auto; }
+          line-height: 1.5; max-height: 500px; overflow: auto; margin: 0; }
 .hover-copy { position: absolute; top: 8px; right: 8px; opacity: 0;
-              transition: opacity 0.2s; background: rgba(255,255,255,0.1);
+              transition: opacity 0.2s; background: rgba(255,255,255,0.12);
               color: white; border: 1px solid rgba(255,255,255,0.3);
               padding: 4px 10px; font-size: 0.85em; border-radius: 4px;
-              cursor: pointer; }
+              cursor: pointer; font-weight: 500; }
 .output-wrap:hover .hover-copy { opacity: 1; }
+.hover-copy:hover { background: rgba(255,255,255,0.25); }
+
+/* toast (CSS class 박제 — 복사 / 초기화 feedback) */
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--rec);
+         color: white; padding: 12px 20px; border-radius: 6px;
+         font-size: 0.9em; font-weight: 500; opacity: 0;
+         transition: opacity 0.3s; pointer-events: none;
+         box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
+.toast.show { opacity: 1; }
 ```
 
 ---
@@ -293,6 +343,9 @@ function generate(format) {
   else if (format === 'json') text = toJSON(answers);
   else if (format === 'prompt') text = toPrompt(answers);
   document.getElementById('output').textContent = text;
+  // 활성 format button 표시
+  document.querySelectorAll('.output-buttons button.gen').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + format)?.classList.add('active');
 }
 
 function toMarkdown(answers) {
@@ -314,35 +367,41 @@ function toMarkdown(answers) {
   return md;
 }
 
-// 5. 복사 / 초기화
+// 5. 복사 / 초기화 — toast feedback (CSS class 박제)
 function copyOutput() {
   const text = document.getElementById('output').textContent;
-  if (!text || text === '생성 후 표시') return;
+  if (!text || text === 'format 생성 후 표시' || text === '답안 초기화됨') {
+    showToast('⚠️ 먼저 [생성] 클릭');
+    return;
+  }
   navigator.clipboard?.writeText(text).then(
-    () => flash('복사 완료'),
+    () => showToast('✅ 복사 완료'),
     () => fallbackCopy(text)
   );
 }
 function fallbackCopy(text) {
   const ta = document.createElement('textarea');
   ta.value = text; document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); flash('복사 완료'); } catch {}
+  try { document.execCommand('copy'); showToast('✅ 복사 완료'); }
+  catch { showToast('❌ 복사 실패'); }
   document.body.removeChild(ta);
 }
-function flash(msg) {
-  const el = document.createElement('div');
-  el.textContent = msg;
-  el.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10b981;color:white;padding:10px 18px;border-radius:6px;z-index:9999;';
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1800);
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
 }
 function resetAnswers() {
+  if (!confirm('모든 답안을 초기화할까요?')) return;
   document.querySelectorAll('input[type="radio"], input[type="checkbox"]')
     .forEach(i => i.checked = false);
   document.querySelectorAll('textarea').forEach(t => t.value = '');
   document.querySelectorAll('.comment-wrap.visible')
     .forEach(w => w.classList.remove('visible'));
-  document.getElementById('output').textContent = '생성 후 표시';
+  document.getElementById('output').textContent = '답안 초기화됨';
+  showToast('🔄 초기화 완료');
 }
 
 // 6. toggle-all-details auto-inject (모든 Tier default — <details> ≥ 1 있는 Q 마다)

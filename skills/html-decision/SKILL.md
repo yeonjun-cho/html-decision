@@ -84,6 +84,7 @@ vague 고민 = best-guess 다중 옵션 + 기타 (직접 입력) 으로 한 cycl
 | 출처 박제 | MD header 에 `**출처 HTML**: <filepath>` 박제 (세션 끊김 대비) |
 | 저장 | `.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html` |
 | frontend-design plugin | 활성 시 aesthetic 자동 강화 — form 동작은 그대로 보존 |
+| **design quality** | base CSS (`html-template.md` §2) 가 정의한 visual system 그대로 박제. subtle shadow / smooth hover transition / 정제된 recommended 외곽선 / outline submit card / 다중 button 스타일 (.gen/.action/.reset) / CSS class toast = 모두 default 박제. base CSS 그대로 적용 ("투박" 영역 차단) |
 
 ---
 
