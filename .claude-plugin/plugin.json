@@ -1,0 +1,22 @@
+{
+  "name": "html-decision",
+  "version": "0.1.0",
+  "description": "사용자의 고민·결정사항을 HTML 결정 캔버스로 변환하는 Claude Code 스킬. 결정점 식별 → 옵션 도출 → HTML 시각화 → MD 출력.",
+  "author": {
+    "name": "yeonjun-cho",
+    "url": "https://github.com/yeonjun-cho"
+  },
+  "homepage": "https://github.com/yeonjun-cho/html-decision",
+  "repository": "https://github.com/yeonjun-cho/html-decision",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "skill",
+    "decision",
+    "html",
+    "canvas",
+    "productivity"
+  ],
+  "skills": "./skills/"
+}

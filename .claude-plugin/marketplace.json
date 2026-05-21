@@ -1,0 +1,29 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "html-decision",
+  "description": "HTML 결정 캔버스 스킬 마켓플레이스",
+  "owner": {
+    "name": "yeonjun-cho",
+    "url": "https://github.com/yeonjun-cho"
+  },
+  "plugins": [
+    {
+      "name": "html-decision",
+      "description": "고민·결정사항을 HTML 결정 캔버스로 변환. 결정점 식별 → 옵션 도출 → 시각화 → MD 출력.",
+      "version": "0.1.0",
+      "author": {
+        "name": "yeonjun-cho",
+        "url": "https://github.com/yeonjun-cho"
+      },
+      "source": "./",
+      "category": "productivity",
+      "tags": [
+        "skill",
+        "decision",
+        "html",
+        "canvas",
+        "korean"
+      ]
+    }
+  ]
+}
