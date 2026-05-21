@@ -21,7 +21,7 @@
   </header>
 
   <!-- 결정점 카드 (per Q) -->
-  <section class="question" data-qid="q1">
+  <section class="question" id="q1" data-qid="q1">
     <h2 class="q-title">Q1. {질문}</h2>
     <p class="q-desc">{한 줄 설명}</p>
 

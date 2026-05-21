@@ -94,6 +94,8 @@ function toMarkdown(answers) {
 
 ★ 발동 시 body layout = **full-width flex** (base CSS 의 `max-width: 920px` override). 260px 흰 sidebar + flex main.
 
+★ **anchor 의무**: 각 `<section class="question">` 는 `id="q{N}"` 박제 필수 (`href="#q{N}"` 가 작동하려면). `data-qid` 는 JS 용, `id` 는 anchor 용 — 둘 다 박제. 보조 section (`<section id="ack">`, `<section id="flow">`, `<section id="submit">`) 도 anchor 매치 의무.
+
 ### 6.1 HTML 구조
 
 ```html
