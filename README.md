@@ -4,7 +4,7 @@
 
 **`/html-decision <고민>` 으로 명시 호출**. ★ 자동 발동 X (Claude 가 대화 문맥 보고 알아서 띄우는 일 없음).
 
-[![Version](https://img.shields.io/badge/version-0.5.0-2563eb)](https://github.com/yeonjun-cho/html-decision)
+[![Version](https://img.shields.io/badge/version-0.5.1-2563eb)](https://github.com/yeonjun-cho/html-decision)
 [![License](https://img.shields.io/badge/license-MIT-10b981)](LICENSE)
 
 ---
@@ -106,6 +106,8 @@ Claude Code 안 슬래시 커맨드로 한 번에 끝.
 
 요구 사항: `python3` (macOS/Linux 기본 설치).
 
+> ★ 향후 자동 갱신을 원하면 [🔄 업데이트](#-업데이트) 의 `autoUpdate` 박제 참조 — 한 번 settings 박으면 매번 수동 갱신 부담 0.
+
 ---
 
 ## 🚀 쓰는 법
@@ -170,10 +172,45 @@ html-decision/
 
 ## 🔄 업데이트
 
+자동 (권장) + 수동 둘 다 지원. **권장 = 자동** — 한 번 박제하면 사용자 부담 0.
+
+### 🟢 자동 갱신 (권장)
+
+`~/.claude/settings.json` 의 `extraKnownMarketplaces.html-decision` entry 에 **`"autoUpdate": true` 한 줄 추가**:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "html-decision": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/yeonjun-cho/html-decision.git"
+      },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+- **신규 사용자** = `/plugin marketplace add ...` 후 위 entry 자동 생성 → `autoUpdate` 만 추가
+- **기존 사용자** = 이미 있는 entry 에 `autoUpdate` 한 줄만 추가
+- 다음 Claude Code restart 시 **marketplace + plugin 자동 갱신** 활성
+
+### 🟡 수동 갱신 (autoUpdate 박제 X 또는 즉시 갱신 시)
+
 ```text
 /plugin marketplace update html-decision
 /plugin update html-decision@html-decision
+/reload-plugins
 ```
+
+### 🔍 현재 버전 확인
+
+```text
+/plugin
+```
+
+→ `html-decision is already at the latest version (X.Y.Z).` 같이 출력. 갱신 필요 시 새 버전 안내.
 
 ---
 
