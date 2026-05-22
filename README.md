@@ -4,7 +4,7 @@
 
 **`/html-decision <고민>` 으로 명시 호출**. ★ 자동 발동 X (Claude 가 대화 문맥 보고 알아서 띄우는 일 없음).
 
-[![Version](https://img.shields.io/badge/version-0.5.1-2563eb)](https://github.com/yeonjun-cho/html-decision)
+[![Version](https://img.shields.io/badge/version-0.5.2-2563eb)](https://github.com/yeonjun-cho/html-decision)
 [![License](https://img.shields.io/badge/license-MIT-10b981)](LICENSE)
 
 ---

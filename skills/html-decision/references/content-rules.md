@@ -106,6 +106,17 @@ context 가 *명시* 불가 (단순 선호도) = 짧은 1문장 정합 박제 ("
 
 발동 조건: 의존 sequence (A → B → C) 가 *명확* + 시각화 가치 있을 때 한정. 단순 list 로 갈음 가능 시 list 만 박제 (grace degradation).
 
+### ⚠️ Mermaid syntax 주의 (깨짐 방지)
+
+| 영역 | ❌ 깨짐 | ✅ 정합 |
+|---|---|---|
+| 노드 label 줄바꿈 | `A[Step 1\nrefs]` (Mermaid 가 newline = statement 종결로 parse) | `A[Step 1<br/>refs]` 또는 quoted `A["Step 1<br/>refs"]` |
+| dotted arrow label | `A -.gate.-> B` (`-.text.->` syntax 모호) | `A -.-> B` (label 제거) |
+| gate / 강조 노드 | `ALL[전 영역]` (rectangle, 약함) | `ALL(["전 영역 gate"])` (stadium-shape, 강조) |
+| 한글 + 공백 label | `A[전 영역 gate]` (보통 OK 지만 unicode + 공백 시 quoted 안전) | `A["전 영역 gate"]` |
+
+★ Mermaid statement *간* newline (예: `A --> B\nB --> C`) = OK. 깨짐 영역 = **노드 label 안 newline** 만.
+
 ---
 
 ## 7. section-intro highlight
@@ -236,3 +247,11 @@ context 가 *명시* 불가 (단순 선호도) = 짧은 1문장 정합 박제 ("
 
 ★ 둘 중 하나 또는 둘 다 박제 가능. 둘 다 박제 시 list + Mermaid 함께 표시.
 ★ T3 + 영향 영역 명확 시 의무. 추상 영향 = list 만 / 구체 의존 = Mermaid 추가.
+
+### ⚠️ Mermaid syntax 주의 (§6 정합 — 동일 룰)
+
+flow Mermaid (§6) 와 동일한 syntax 룰 적용:
+- 노드 label 안 줄바꿈 = `<br/>` (★ `\n` 금지)
+- dotted arrow label = `-.->` (label 제거 — `-.text.->` syntax 모호)
+- 한글 + 공백 label = `A["label"]` (quoted 안전)
+- 단순 case (impact area = single-line + 한글 label only) = 보통 정상 렌더

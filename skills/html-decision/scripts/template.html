@@ -629,7 +629,8 @@ document.querySelectorAll('.preview-panel[data-for-preview]').forEach(p => {
 window.addEventListener('load', updateAllPreviews);
 
 // F. radar chart 초기화 (T3 — 옵션 별 axes 비교)
-const RADAR_DATA = window.RADAR_DATA || {};
+// NOTE: RADAR_DATA 는 head 영역 JS data 박제 영역에서 const 로 선언됨 (render.py 가 박제).
+// 여기서 재선언 시 SyntaxError — 단순 함수 정의만.
 function initRadarCharts() {
   if (typeof Chart === 'undefined') return;
   Object.entries(RADAR_DATA).forEach(([qid, data]) => {
