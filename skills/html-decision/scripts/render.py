@@ -22,6 +22,21 @@ TEMPLATE_NAME = "template.html"
 MERMAID_CDN = (
     '<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>'
 )
+CHART_CDN = (
+    '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
+)
+
+# Tier 별 자동 차등 widget 박제 영역.
+WIDGETS_BY_TIER = {
+    "T1": set(),
+    "T2": {"dashboard", "matrix"},
+    "T3": {"dashboard", "matrix", "radar", "impact", "confidence"},
+}
+
+# axis label 한국어 → level 표기 (matrix 의 axis 셀에 사용).
+AXIS_LEVEL_LABELS = {
+    1: "低", 2: "低", 3: "中", 4: "高", 5: "高",
+}
 
 
 def esc(s):
@@ -109,6 +124,22 @@ def render_question(q, tier):
         parts.append(f'  <p class="q-desc">{desc}</p>')
     if context:
         parts.append(f'  <div class="q-context">{context}</div>')
+
+    # D. 영향 영역 (T3) — context 다음
+    impact_html = render_impact_area(q, tier)
+    if impact_html:
+        parts.append(impact_html)
+
+    # A. 옵션 비교 matrix (T2+) — 옵션 카드 위
+    matrix_html = render_option_matrix(q, tier)
+    if matrix_html:
+        parts.append(matrix_html)
+
+    # F. radar chart (T3) — matrix 옆/아래
+    radar_html = render_radar_block(q, tier)
+    if radar_html:
+        parts.append(radar_html)
+
     parts.append("")
 
     for i, opt in enumerate(options):
@@ -239,6 +270,214 @@ def render_section_intro(intro):
     return f'<div class="section-intro">{intro}</div>'
 
 
+# ---------- v0.5.0 5 widget renderers ----------
+
+
+def render_confidence(level, show_label=True):
+    """E. confidence indicator — ●●●●○ + 라벨."""
+    if level is None:
+        return ""
+    try:
+        level = int(level)
+    except (TypeError, ValueError):
+        return ""
+    level = max(0, min(5, level))
+    filled = "●" * level
+    empty = "○" * (5 - level)
+    label = f'<span class="confidence-label">{level}/5</span>' if show_label else ""
+    return (
+        f'<span class="confidence">'
+        f'<span class="filled">{filled}</span>'
+        f'<span class="empty">{empty}</span>'
+        f'</span>{label}'
+    )
+
+
+def render_recommendations_dashboard(questions, tier):
+    """B. 권장 dashboard — 본문 위 한눈 표 (T2+ 의무)."""
+    if "dashboard" not in WIDGETS_BY_TIER.get(tier, set()):
+        return ""
+    rows = []
+    has_rec = False
+    for q in questions:
+        rec = next((o for o in (q.get("options") or []) if o.get("recommended")), None)
+        qid = q.get("id", "")
+        nav = q.get("nav_label") or q.get("title", qid)
+        if not rec:
+            rows.append(
+                f'    <tr>'
+                f'<td><a class="q-link" href="#{qid}">{nav}</a></td>'
+                f'<td><span class="rec-reason">(권장 옵션 없음 — 사용자 영역)</span></td>'
+                f'<td></td>'
+                f'<td></td>'
+                f'</tr>'
+            )
+            continue
+        has_rec = True
+        opt_label = rec.get("label", "")
+        reason = rec.get("reason", "")
+        conf_html = ""
+        if "confidence" in WIDGETS_BY_TIER.get(tier, set()):
+            conf_html = render_confidence(rec.get("confidence"))
+        rows.append(
+            f'    <tr>'
+            f'<td><a class="q-link" href="#{qid}">{nav}</a></td>'
+            f'<td class="rec-opt">{opt_label}</td>'
+            f'<td>{conf_html}</td>'
+            f'<td class="rec-reason">{reason}</td>'
+            f'</tr>'
+        )
+
+    if not has_rec and not rows:
+        return ""
+
+    conf_th = (
+        "<th>확신도</th>" if "confidence" in WIDGETS_BY_TIER.get(tier, set()) else "<th></th>"
+    )
+    return (
+        '<div class="recommendations-dashboard">\n'
+        f'  <h3>🎯 Claude 권장 요약 ({len(questions)} 영역)</h3>\n'
+        '  <p class="dash-help">권장 옵션만 먼저 검토하고 sanity check → 아래 결정점 본문에서 detail 확인.</p>\n'
+        '  <table class="dash-table">\n'
+        '    <thead><tr>'
+        '<th>Q</th>'
+        '<th>권장 옵션</th>'
+        f'{conf_th}'
+        '<th>1줄 이유</th>'
+        '</tr></thead>\n'
+        '    <tbody>\n'
+        + "\n".join(rows)
+        + "\n    </tbody>\n"
+        "  </table>\n"
+        "</div>"
+    )
+
+
+def render_option_matrix(q, tier):
+    """A. 옵션 비교 matrix — 각 Q 안 첫머리 (T2+ 의무)."""
+    if "matrix" not in WIDGETS_BY_TIER.get(tier, set()):
+        return ""
+    options = [o for o in (q.get("options") or []) if o.get("value") != "other"]
+    if not options:
+        return ""
+
+    # Pros/Cons/예시/cost/risk 요약 — matrix_summary 우선, 없으면 detail 에서 도출.
+    rows = []
+    for o in options:
+        rec_class = ' class="rec-row"' if o.get("recommended") else ""
+        rec_mark = "★" if o.get("recommended") else ""
+        ms = o.get("matrix_summary") or {}
+        detail = o.get("detail") or {}
+        pros = ms.get("pros_core") or detail.get("pros", "")
+        cons = ms.get("cons_core") or detail.get("cons", "")
+        # 본문에 들어갈 핵심만 — 너무 길면 자름.
+        pros_short = (pros[:60] + "…") if len(pros) > 65 else pros
+        cons_short = (cons[:60] + "…") if len(cons) > 65 else cons
+
+        # cost/risk level — matrix_summary 또는 axes 에서.
+        axes = o.get("axes") or {}
+        cost_level = ms.get("cost_level")
+        if not cost_level and axes.get("cost"):
+            cost_level = AXIS_LEVEL_LABELS.get(int(axes["cost"]), "")
+        risk_level = ms.get("risk_level")
+        if not risk_level and axes.get("risk"):
+            risk_level = AXIS_LEVEL_LABELS.get(int(axes["risk"]), "")
+
+        rows.append(
+            f'    <tr{rec_class}>'
+            f'<td class="opt-name">{rec_mark} {o.get("label", "")}</td>'
+            f'<td>{pros_short}</td>'
+            f'<td>{cons_short}</td>'
+            f'<td class="axis-cell axis-{esc(cost_level)}">{cost_level or "—"}</td>'
+            f'<td class="axis-cell axis-{esc(risk_level)}">{risk_level or "—"}</td>'
+            f'</tr>'
+        )
+
+    return (
+        '  <table class="option-matrix">\n'
+        '    <thead><tr>'
+        '<th>옵션</th>'
+        '<th>Pros 핵심</th>'
+        '<th>Cons 핵심</th>'
+        '<th>비용</th>'
+        '<th>risk</th>'
+        '</tr></thead>\n'
+        '    <tbody>\n'
+        + "\n".join(rows)
+        + "\n    </tbody>\n"
+        "  </table>"
+    )
+
+
+def render_radar_block(q, tier):
+    """F. radar chart HTML container — 각 Q 안 (T3 한정)."""
+    if "radar" not in WIDGETS_BY_TIER.get(tier, set()):
+        return ""
+    qid = q.get("id", "")
+    # axes 데이터가 1개 옵션이라도 있어야 의미 있음.
+    options = [o for o in (q.get("options") or []) if o.get("value") != "other"]
+    has_axes = any(o.get("axes") for o in options)
+    if not has_axes:
+        return ""
+    return (
+        f'  <div class="radar-wrap">\n'
+        f'    <h5>🎯 옵션 비교 (5축 visual)</h5>\n'
+        f'    <canvas class="radar-canvas" data-qid="{qid}"></canvas>\n'
+        f'  </div>'
+    )
+
+
+def render_impact_area(q, tier):
+    """D. 영향 영역 시각화 — 각 Q context block 옆 (T3 한정)."""
+    if "impact" not in WIDGETS_BY_TIER.get(tier, set()):
+        return ""
+    impact = q.get("impact") or {}
+    if not impact:
+        return ""
+    mermaid_code = impact.get("mermaid")
+    areas = impact.get("areas") or []
+    if not mermaid_code and not areas:
+        return ""
+
+    title = impact.get("title", "📊 영향 영역")
+    parts = [f'  <div class="impact-area">', f'    <h5>{title}</h5>']
+    if areas:
+        items = "".join(f"<li>{a}</li>" for a in areas)
+        parts.append(f'    <ul>{items}</ul>')
+    if mermaid_code:
+        parts.append(
+            f'    <div class="impact-mermaid"><div class="mermaid">{mermaid_code}</div></div>'
+        )
+    parts.append("  </div>")
+    return "\n".join(parts)
+
+
+def collect_radar_data(questions, tier):
+    """F. radar chart 용 JS data — 모든 Q 의 axes data 통합."""
+    if "radar" not in WIDGETS_BY_TIER.get(tier, set()):
+        return {}
+    out = {}
+    for q in questions:
+        options = [o for o in (q.get("options") or []) if o.get("value") != "other"]
+        opts_with_axes = [o for o in options if o.get("axes")]
+        if len(opts_with_axes) < 2:
+            continue  # 비교 의미 X
+        # axis 순서 정합 — 첫 옵션의 axes 키 순서 사용.
+        axes_keys = list(opts_with_axes[0]["axes"].keys())
+        out[q["id"]] = {
+            "axes": axes_keys,
+            "options": [
+                {
+                    "label": o.get("label", ""),
+                    "values": [int(o["axes"].get(k, 0)) for k in axes_keys],
+                    "recommended": bool(o.get("recommended")),
+                }
+                for o in opts_with_axes
+            ],
+        }
+    return out
+
+
 def render_output_buttons(tier):
     """Tier 별 format 버튼."""
     btns = [
@@ -310,13 +549,30 @@ def build(data):
     ack_section = render_ack(data.get("ack"))
     flow_section = render_flow(data.get("flow"))
     section_intro = render_section_intro(data.get("section_intro"))
+    recommendations_dashboard = render_recommendations_dashboard(questions, tier)
 
     questions_block = "\n\n".join(render_question(q, tier) for q in questions)
 
     output_buttons = render_output_buttons(tier)
     preview_data_js = render_preview_data_js(questions)
 
+    # F. radar chart 데이터 (T3 only) + Chart.js CDN
+    radar_data = collect_radar_data(questions, tier)
+    radar_data_js = (
+        f"const RADAR_DATA = {json.dumps(radar_data, ensure_ascii=False, indent=2)};\n"
+        "window.RADAR_DATA = RADAR_DATA;"
+    ) if radar_data else "const RADAR_DATA = {}; window.RADAR_DATA = RADAR_DATA;"
+    use_chart = bool(radar_data)
+
+    # D. impact-area Mermaid 박제 시 mermaid 도 켜짐
+    has_impact_mermaid = any(
+        (q.get("impact") or {}).get("mermaid") for q in questions
+    )
+    if has_impact_mermaid:
+        use_mermaid = True
+
     mermaid_script = MERMAID_CDN if use_mermaid else ""
+    chart_script = CHART_CDN if use_chart else ""
 
     # template 로드 + 치환
     template_path = Path(__file__).parent / TEMPLATE_NAME
@@ -325,12 +581,14 @@ def build(data):
     substitutions = {
         "{{TITLE}}": esc(title),
         "{{MERMAID_SCRIPT}}": mermaid_script,
+        "{{CHART_SCRIPT}}": chart_script,
         "{{LAYOUT_CLASS}}": layout,
         "{{SIDEBAR_BLOCK}}": sidebar_block,
         "{{H1}}": h1,
         "{{META}}": meta_line,
         "{{ACK_SECTION}}": ack_section,
         "{{FLOW_SECTION}}": flow_section,
+        "{{RECOMMENDATIONS_DASHBOARD}}": recommendations_dashboard,
         "{{SECTION_INTRO}}": section_intro,
         "{{QUESTIONS_BLOCK}}": questions_block,
         "{{OUTPUT_BUTTONS}}": output_buttons,
@@ -339,7 +597,7 @@ def build(data):
         "{{DATE}}": date,
         "{{TOTAL_Q}}": str(len(questions)),
         "{{USE_LOCALSTORAGE}}": "true" if use_localstorage else "false",
-        "{{PREVIEW_DATA_JS}}": preview_data_js,
+        "{{PREVIEW_DATA_JS}}": preview_data_js + "\n\n" + radar_data_js,
     }
 
     result = template

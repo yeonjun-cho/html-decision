@@ -4,22 +4,32 @@
 
 **`/html-decision <고민>` 으로 명시 호출**. ★ 자동 발동 X (Claude 가 대화 문맥 보고 알아서 띄우는 일 없음).
 
-[![Version](https://img.shields.io/badge/version-0.4.1-2563eb)](https://github.com/yeonjun-cho/html-decision)
+[![Version](https://img.shields.io/badge/version-0.5.0-2563eb)](https://github.com/yeonjun-cho/html-decision)
 [![License](https://img.shields.io/badge/license-MIT-10b981)](LICENSE)
 
 ---
 
-## 🎨 풀세트 결정 캔버스 (단순 요약 X)
+## 🎨 풀세트 결정 캔버스 — *결정 시각화 도구*
 
-이건 *짧은 정리 HTML* 이 아니다. **8 결정점 + 옵션 별 Pros/Cons/예시 + Mermaid 의존 sequence + sticky sidebar + scroll-spy + visual progress + preview-panel + ack-area + localStorage + 3-format MD/JSON/prompt 출력** 까지 박는 **풀세트 결정 캔버스**. v1 (866줄 로컬 스킬) 의 visual polish 100% 흡수.
+이건 *짧은 정리 HTML* 이 아니다. v0.5.0 = **결정 본질 시각화** 5 widget 자동 박제.
 
-| 한 결정점 카드 안 박제 영역 |
-|---|
-| q-context (왜 결정 필요) · radio 옵션 N + 기타 (자동) · 옵션별 권장 표시 + reason 1줄 · `<details>` 안 Pros / Cons / 예시 · 코멘트 textarea (T2+) · preview-panel (옵션 영향 live table) |
+### v0.5.0 신설 widget (T3 자동 풀세트)
 
-| 전체 캔버스 박제 영역 |
-|---|
-| h1 underline + h2.phase top border · ack-area highlight · Mermaid flowchart (의존 sequence) · section-intro · sticky sidebar (260px) + 섹션 헤더 + visual progress bar + scroll-spy + "✓" answered marker · outline submit card + 다중 button (.gen/.action/.reset) · CSS class toast · localStorage 보존 |
+| widget | 동작 |
+|---|---|
+| 🎯 **권장 dashboard** | 본문 위 *한눈 표* — Q × 권장 옵션 × confidence × 1줄 이유. 5초 안에 sanity check |
+| 📊 **옵션 비교 matrix** | 각 Q 안 *옵션 × Pros 핵심 × Cons 핵심 × 비용 × risk* 비교 표. 흩어진 detail 한눈에 |
+| 🕸 **radar chart** (Chart.js) | 옵션 별 5축 visual (benefit/cost/risk/impact/effort). 직관적 trade-off 비교 |
+| 🗺 **영향 영역 시각화** | 결정 영향 area list + Mermaid mapping. *무엇에 영향* 명확 |
+| ●●●●○ **confidence indicator** | Claude 권장의 *확신도* 5점 visual. 신뢰도 alignment |
+
+### 한 결정점 카드 박제
+
+q-context (왜 결정 필요) · 영향 영역 시각화 (D) · **옵션 비교 matrix (A)** + **radar chart (F)** · 옵션 N + 기타 (자동) · 권장 + confidence (E) + reason · `<details>` Pros/Cons/예시 · 코멘트 textarea (T2+) · preview-panel (옵션 영향 live)
+
+### 전체 캔버스 박제
+
+**🎯 권장 dashboard (B) — 본문 위** · h1 underline + h2.phase top border · ack-area highlight · Mermaid flowchart (의존 sequence) · section-intro · sticky sidebar (260px) + 섹션 헤더 + visual progress bar + scroll-spy + "✓" answered marker · outline submit card + 다중 button (.gen/.action/.reset) · CSS class toast · localStorage 보존
 
 ---
 
@@ -27,14 +37,16 @@
 
 평균 시간 절감은 유효하지만 **결정점 수 × detail 깊이 에 따라 선형 증가**. T3 상한 케이스 (8 결정점 + 풀 detail + preview ×2) 에서는 시간 절감이 작음.
 
-| Tier | 결정점 N | Claude output | 예상 시간 (v0.4.x) | v0.3.x 대비 절감 |
+| Tier | 결정점 N | Claude output | 예상 시간 (**v0.5.0**) | 비고 |
 |---|---|---|---|---|
-| T1 | 1-3 | ~500-800 tokens | **15-25초** | ~85% ↓ |
-| T2 | 4-7 | ~1500-2500 tokens | **40-70초** | ~70% ↓ |
-| T3 표준 (5 결정점) | 5 | ~2500-3500 tokens | **1.5-2분** | ~50% ↓ |
-| T3 헤비 (8 결정점, 풀 detail, preview×2) | 8+ | ~5000-7000 tokens | **3-4분** | ~10-20% ↓ |
+| T1 | 1-3 | ~500-800 tokens | **15-25초** | widget 박제 X (단순 case) |
+| T2 | 4-7 | ~1650-3000 tokens | **50-90초** | dashboard + matrix 자동 박제 |
+| T3 표준 (5 결정점) | 5 | ~3100-4700 tokens | **2-2.5분** | + radar + impact + confidence |
+| T3 헤비 (8 결정점, 풀세트) | 8+ | ~6500-9500 tokens | **4-5분** | 풀세트 widget 자동 (매번 명시 X) |
 
-★ v0.3.x = 모든 케이스 일관 3-4분 (HTML 직접 생성, ~9000 tokens). v0.4.x = 케이스 별로 갈림.
+★ v0.5.0 = T3 시 5 widget 자동 차등 박제. v0.4.x 대비 **시간 ~25-30% ↑** (Claude output token ~30% ↑), **결정 시각화 가치 ↑↑↑**. ROI 충분.
+
+★ v0.3.x (HTML 직접 생성) = 모든 케이스 일관 3-4분. v0.4.x = 평균 절감. v0.5.0 = 시각화 풀세트.
 
 **진짜 bottleneck = Claude 가 JSON spec 작성하는 시간** (render.py 자체는 ~1초). 따라서 *결정 콘텐츠의 양* 이 시간을 결정. 콘텐츠 = 가치라 단순 축소는 권장 X.
 
@@ -80,7 +92,7 @@ Anthropic 공식 권장: ["Pre-made scripts save tokens (no need to include code
 Claude Code 안 슬래시 커맨드로 한 번에 끝.
 
 ```text
-/plugin marketplace add yeonjun-cho/html-decision
+/plugin marketplace add https://github.com/yeonjun-cho/html-decision
 /plugin install html-decision@html-decision
 ```
 

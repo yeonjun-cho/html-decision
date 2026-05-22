@@ -14,6 +14,10 @@
 - §7 section-intro highlight — 결정점 grouping 시
 - §8 preview-panel (옵션 영향 live preview) — T3 옵션 영향 예측 가능 시
 - §9 vague 고민 처리
+- **§11 confidence indicator** (T3) — Claude 확신도
+- **§12 axes 5축** (T3) — radar chart 데이터
+- **§13 matrix_summary** (T2+) — 옵션 비교 matrix
+- **§14 impact area** (T3) — 결정 영향 영역 시각화
 
 ---
 
@@ -155,4 +159,80 @@ context 가 *명시* 불가 (단순 선호도) = 짧은 1문장 정합 박제 ("
 | context | 모든 결정점 박제 (없으면 짧은 정합 1문장) |
 | Pros/Cons | strategy 결정 시 의무 박제 |
 | ack/flow/preview | situational — trigger 충족 시만 박제 |
+| **v0.5.0 widget** (T2+) | matrix_summary / confidence / axes / impact = T2 시 일부, T3 시 풀세트 자동 박제 |
 | HTML escape | `label` / `paragraphs` 등 HTML 허용 필드 = Claude 가 직접 HTML 입력. 그 외 (`title`, `desc`, `context`) = plain text (render.py 는 이 필드들도 그대로 박제 — XSS 영역 X, 자체 출력 file) |
+
+---
+
+## 11. confidence indicator (T3 의무 — options 안 박제)
+
+각 옵션 (특히 권장 옵션) 의 Claude 확신도 = `confidence: 1-5`.
+
+| 값 | 표시 | 의미 |
+|---|---|---|
+| 5 | ●●●●● | 매우 확신 — 강한 컨센서스 / 명확한 best practice |
+| 4 | ●●●●○ | 권장 — 다른 옵션 대비 명확 우위 |
+| 3 | ●●●○○ | 중립 — 옵션 간 trade-off 큼 |
+| 2 | ●●○○○ | 약한 권장 — 다른 옵션 가능성 큼 |
+| 1 | ●○○○○ | 권장 보류 — 사용자 영역 |
+
+★ 권장 옵션 (recommended:true) 시 의무. 다른 옵션 박제는 선택. dashboard 안 표시됨.
+
+---
+
+## 12. axes 5축 (T3 의무 — options 안 박제, radar chart 활성)
+
+각 옵션의 5축 평가 = `axes: {benefit, cost, risk, impact, effort}` 각 1-5.
+
+| 축 | 의미 | 1-5 척도 |
+|---|---|---|
+| `benefit` | 효과 / 가치 | 1=낮음 / 5=매우 높음 |
+| `cost` | 비용 (시간 / $ / 자원) | 1=낮음 / 5=매우 높음 |
+| `risk` | 위험도 (실패 / 부작용 / 미지의 영향) | 1=낮음 / 5=매우 높음 |
+| `impact` | 영향 범위 (사람 / 시스템 / 영역) | 1=좁음 / 5=매우 넓음 |
+| `effort` | 구현 노력 (어려움 / 시간) | 1=쉬움 / 5=매우 어려움 |
+
+★ T3 strategy 결정 시 의무 박제. 옵션 2+ 가 axes 박제 시 radar chart 자동 활성 (visual 옵션 비교). 옵션 1개 또는 0개 → radar 자동 skip.
+
+---
+
+## 13. matrix_summary (T2+ 의무 — options 안 박제, matrix 표 활성)
+
+각 옵션의 *비교용 핵심 요약* = `matrix_summary: {pros_core, cons_core, cost_level, risk_level}`.
+
+| 필드 | 내용 | 길이 한도 |
+|---|---|---|
+| `pros_core` | Pros 핵심 (matrix 표 셀용) | **60 char 이하** (이상 시 자동 truncate) |
+| `cons_core` | Cons 핵심 (matrix 표 셀용) | **60 char 이하** |
+| `cost_level` | 비용 등급 | `"高"`, `"中"`, `"低"` 중 한 단어 |
+| `risk_level` | 위험 등급 | `"高"`, `"中"`, `"低"` 중 한 단어 |
+
+★ `detail.pros/cons` 와 별개 — `matrix_summary` 가 **한눈 비교 표** 용. `detail` 은 클릭 후 expand. 두 영역 정합 유지.
+★ T2 시 박제 의무. T3 시 axes 와 함께 박제 (matrix + radar 시너지).
+
+---
+
+## 14. impact area (T3 의무 — questions 안 박제, impact-area block 활성)
+
+결정의 *영향 영역 시각화* = `impact: {title, areas, mermaid}`.
+
+```json
+"impact": {
+  "title": "📊 결정 영향 영역",
+  "areas": [
+    "scripts/render.py",
+    "template.html",
+    "content-rules.md"
+  ],
+  "mermaid": "flowchart LR\n  Q1 --> render.py\n  Q1 --> template.html\n  Q1 --> rules"
+}
+```
+
+| 필드 | 의미 |
+|---|---|
+| `title` | h5 헤딩 (기본: "📊 영향 영역") |
+| `areas` | list — 영향 file / 모듈 / 사람. 단순 case 권장 |
+| `mermaid` | flowchart 코드. 복잡한 의존 영역 시각화 시 권장 |
+
+★ 둘 중 하나 또는 둘 다 박제 가능. 둘 다 박제 시 list + Mermaid 함께 표시.
+★ T3 + 영향 영역 명확 시 의무. 추상 영향 = list 만 / 구체 의존 = Mermaid 추가.

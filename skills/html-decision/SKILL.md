@@ -50,6 +50,18 @@ argument-hint: <고민 설명>
 | sidebar 보조 anchor | `sidebar_aux: [{href, label}]` | ack/flow 박제 시 |
 | localStorage | `use_localstorage: true` (T3 default) | N≥5 시 |
 
+### 2.3 v0.5.0 자동 차등 widget — Claude 명시 X, Tier 별 자동 박제
+
+| widget | T1 | T2 | T3 | JSON 필드 |
+|---|---|---|---|---|
+| **권장 dashboard** (본문 위 한눈 표) | ❌ | ✅ | ✅ | 자동 도출 (options 의 `recommended:true` + `reason`) |
+| **옵션 비교 matrix** (각 Q 안) | ❌ | ✅ (text only) | ✅ (text + radar) | 옵션 안 `matrix_summary: {pros_core, cons_core, cost_level, risk_level}` |
+| **confidence indicator** (●●●●○) | ❌ | ❌ | ✅ | 옵션 안 `confidence: 1-5` |
+| **radar chart** (5축 visual) | ❌ | ❌ | ✅ | 옵션 안 `axes: {benefit, cost, risk, impact, effort}` (1-5 척도) |
+| **impact area** (영향 영역 시각화) | ❌ | ❌ | ✅ | 질문 안 `impact: {title, areas[], mermaid}` |
+
+★ 자동 차등 = 사용자가 명시 X. T3 spec 박제 시 5 widget 자동. `matrix_summary` / `confidence` / `axes` / `impact` 없으면 해당 widget 자동 skip (graceful degradation).
+
 ---
 
 ## 3. JSON spec 구조
@@ -61,7 +73,7 @@ argument-hint: <고민 설명>
   "date": "YYYY-MM-DD",
   "branch": "<git 브랜치>",
   "meta": "<context 부연 — meta line 에 박제>",
-  "source_html": ".claude-history/html-decision/<filename>.html",
+  "source_html": "<CWD>/.claude-history/html-decision/<filename>.html",
   "tier": "T1|T2|T3",
   "questions": [
     {
@@ -70,12 +82,27 @@ argument-hint: <고민 설명>
       "nav_label": "Q1. <짧은 제목>",
       "desc": "<한 줄 설명>",
       "context": "<왜 결정 필요 — 1-2 문장>",
+      "impact": {
+        "title": "📊 영향 영역",
+        "areas": ["<file/모듈/사람>", "..."],
+        "mermaid": "flowchart LR\\n  Q1 --> X\\n  Q1 --> Y"
+      },
       "options": [
         {
           "value": "<slug>",
           "label": "<옵션 label>",
           "recommended": true,
           "reason": "<1줄 이유>",
+          "confidence": 4,
+          "axes": {
+            "benefit": 5, "cost": 4, "risk": 2, "impact": 5, "effort": 3
+          },
+          "matrix_summary": {
+            "pros_core": "<60 char 핵심>",
+            "cons_core": "<60 char 핵심>",
+            "cost_level": "高|中|低",
+            "risk_level": "高|中|低"
+          },
           "detail": { "pros": "...", "cons": "...", "example": "..." }
         }
       ],
@@ -84,6 +111,17 @@ argument-hint: <고민 설명>
   ]
 }
 ```
+
+### 3.1 v0.5.0 신설 필드 (T2/T3 자동 차등 widget 활성)
+
+| 필드 | 위치 | Tier | 의미 |
+|---|---|---|---|
+| `options[].confidence` | option | T3 | 1-5 (●●●●○). 권장 옵션의 Claude 확신도 |
+| `options[].axes` | option | T3 | 5축 (benefit/cost/risk/impact/effort) 각 1-5. radar chart 박제 |
+| `options[].matrix_summary` | option | T2+ | 옵션 비교 matrix 박제용 (pros_core/cons_core 65 char 한도, cost/risk level) |
+| `questions[].impact` | question | T3 | 영향 영역 시각화 (areas list 또는 mermaid) |
+
+★ 위 필드 없으면 해당 widget 자동 skip. graceful degradation.
 
 ★ "기타 (직접 입력)" 옵션 = render.py 가 자동 박제 (마지막 위치). JSON 안 명시 X.
 
