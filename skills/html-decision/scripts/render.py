@@ -282,6 +282,10 @@ def build(data):
     branch = data.get("branch")
     meta_extra = data.get("meta")
     source_html = data.get("source_html", "")
+    # source_html = 절대경로 의무 (paste-back 식별 + 세션 끊김 대비).
+    # 상대경로 박제 시 cwd 기준 절대경로 자동 변환 (safety net).
+    if source_html and not Path(source_html).is_absolute():
+        source_html = str(Path(source_html).resolve())
     tier = data.get("tier", "T1").upper()
     layout = data.get("layout") or ("with-sidebar" if tier == "T3" else "simple")
     use_mermaid = bool(data.get("use_mermaid") or data.get("flow"))

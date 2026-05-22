@@ -93,15 +93,16 @@ argument-hint: <고민 설명>
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/html-decision/scripts/render.py" \
-  --output ".claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html" \
+  --output "<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html" \
   <<'HTML_DECISION_SPEC_EOF'
 {...JSON spec...}
 HTML_DECISION_SPEC_EOF
 ```
 
 - `CLAUDE_PLUGIN_ROOT` = Claude Code 가 플러그인 루트로 export 한 env (사용 가능). 없으면 `~/.claude/plugins/cache/html-decision/html-decision/<version>/` 사용
+- `<CWD>` = **현재 작업 디렉토리 절대경로** (예: `/Users/musinsa/dev/<project>`). Claude 가 system context 의 cwd 박제. ★ `--output` 인자 = **절대경로 의무**
 - `<topic-slug>` = 핵심 키워드 2-3 (kebab-case). 같은 시간 안 재호출 시 `-v2`, `-v3` 자동 부여 (사용자가 책임 — Claude 가 timestamp 또는 슬러그 변형)
-- output path 의 `source_html` 와 JSON 안 `source_html` 필드 = **일치 의무** (paste-back 식별)
+- output path 와 JSON 안 `source_html` 필드 = **일치 의무 + 둘 다 절대경로** (paste-back 식별 / 세션 끊김 대비). 상대경로 박제 시 render.py 가 cwd 기준 절대로 자동 변환 (safety net) 하지만 명시 절대 권장
 
 ---
 
@@ -133,7 +134,7 @@ T3 시 1줄 추가: 📄 MD (기본) / 📦 JSON (자동화) / 💬 prompt (새 
 | context block | `context` 필드 = 모든 결정점 의무 (왜 결정 필요) |
 | Pros/Cons detail | `detail: {pros, cons, example?}` = strategy 결정 시 의무 |
 | MD 파싱 | 결과 paste-back parse rule = `references/output-formats.md` |
-| 저장 경로 | `.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html` |
+| 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html` (절대경로 의무) |
 
 ---
 
