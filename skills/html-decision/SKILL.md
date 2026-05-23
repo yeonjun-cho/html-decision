@@ -1,6 +1,6 @@
 ---
 name: html-decision
-description: 사용자가 `/html-decision` 슬래시 명령으로 명시 호출 시 동작. 결정점을 HTML 결정 캔버스로 변환 (옵션 도출 → Pros/Cons → Mermaid/sidebar/preview-panel 시각화 → MD 결과 회수). JSON spec 작성 → `scripts/render.py` 가 HTML 렌더링. HTML file 응답 (채팅 = file 경로 + 3-5줄 안내 한정). 결과 = `.claude-history/html-decision/` 안 저장 + SendUserFile 전달. ★ 자동 발동 X — 명시 슬래시 호출만.
+description: 사용자가 `/html-decision` 슬래시 명령으로 명시 호출 시 동작. 결정점을 HTML 결정 캔버스로 변환 (옵션 도출 → Pros/Cons → 카드/표 시각화 → MD 결과 회수). JSON spec 작성 → `scripts/render.py` 가 HTML 렌더링. HTML file 응답 (채팅 = file 경로 + 3-5줄 안내 한정). 결과 = `.claude-history/html-decision/` 안 저장 + SendUserFile 전달. ★ 자동 발동 X — 명시 슬래시 호출만.
 argument-hint: <고민 설명>
 ---
 
@@ -10,57 +10,36 @@ argument-hint: <고민 설명>
 
 호출 인자: `$ARGUMENTS` (비어있으면 종료)
 
+★ 결정점 N=0 (설명용 문서) 도 가능 — 동일 layout, 컨텐츠만 다름.
+
 ---
 
 ## 1. 동작 (5 step)
 
 1. `<고민>` + 현재 세션 context 흡수
-2. **Tier 결정** (§2) + 결정점 N개 식별 + 각 결정점 구성 (옵션 + 권장 + Pros/Cons + context). 상세 룰 = `references/content-rules.md`
-3. JSON spec 작성 (§3) — Tier 별 features 포함
+2. **결정점 N개 식별** + 각 결정점 구성 (제목 / 왜 필요 / 옵션 + 권장 + Pros/Cons + 상태). N=0 가능
+3. JSON spec 작성 (§3) — `references/content-rules.md` 참조
 4. `python3 ${CLAUDE_PLUGIN_ROOT}/skills/html-decision/scripts/render.py --output <path>` 호출 (JSON = stdin heredoc)
 5. SendUserFile + 짧은 채팅 응답 (§5)
 
-★ ultrathink = T3 시 한정.
+★ ultrathink = 결정점 ≥ 5 또는 strategy 결정 시.
 
 ---
 
-## 2. Tier 분기
+## 2. 일관 layout (모든 case 동일)
 
-| Tier | trigger | JSON `tier` | render features |
-|---|---|---|---|
-| **T1** | N=1~3 + §2.1 미충족 | `"T1"` | radio + 기타 + MD 버튼. 코멘트 생략. layout=simple |
-| **T2** | N=4~7 + §2.1 미충족 | `"T2"` | T1 + 코멘트 + 권장 옵션 강조 + MD/JSON 버튼 |
-| **T3** | **§2.1 trigger 1개 이상** | `"T3"` | T2 + sidebar/sticky-nav + 3-format + 풀세트 (§2.2) |
+모든 N (0, 1, 2+) 에 동일 구조. 차이 = 컨텐츠의 *값* 만.
 
-### 2.1 T3 trigger (OR — 하나라도 충족)
-
-1. 결정점 N ≥ 5
-2. 의존 sequence 명확 (A → B → C)
-3. strategy / paradigm 결정 (옵션 별 Pros/Cons 비교가 본질적)
-4. 선행 결정 ack 필요 (연속 cycle)
-
-### 2.2 T3 풀세트 (situational — JSON 필드로 박제)
-
-| 영역 | JSON 필드 | 발동 조건 |
+| 영역 | 위치 | 동작 |
 |---|---|---|
-| ack-area | `ack: {title, paragraphs[]}` | trigger #4 시 |
-| Mermaid flowchart | `flow: {title, mermaid}` + `use_mermaid: true` | 의존 sequence 시각화 시 |
-| section-intro | `section_intro: "..."` | 결정점 grouping 시 |
-| preview-panel | 질문 안 `preview: {title, intro, options{value: {title, rows}}}` | 옵션 영향 예측 가능 시 |
-| sidebar 보조 anchor | `sidebar_aux: [{href, label}]` | ack/flow 박제 시 |
-| localStorage | `use_localstorage: true` (T3 default) | N≥5 시 |
+| **sidebar** | 좌측 240px | 진행 bar + 목차 (📋 배경 / 🎯 권장 요약 / Q1~Qn / ✏️ 결과 추출 anchor only) |
+| **header** | 본문 상단 | h1 + meta (날짜·브랜치) |
+| **📋 배경 카드** | 본문 (id="bg") | 분석 요약 bullet + "자세히" collapse |
+| **🎯 권장 요약 dashboard** | 본문 (id="rec") | Q × 권장 옵션 × 신뢰도 × 이유 표. N=0 시 empty state |
+| **Q 카드 × N** | 본문 | 권장 mini + 💡 왜 + 옵션 비교 표 + 옵션 detail (카드) + 영향 + 선택 |
+| **✏️ 결과 추출** | 본문 하단 (id="submit") | 생성 / 복사 / 초기화 버튼. N=0 시 disabled |
 
-### 2.3 v0.5.0 자동 차등 widget — Claude 명시 X, Tier 별 자동 박제
-
-| widget | T1 | T2 | T3 | JSON 필드 |
-|---|---|---|---|---|
-| **권장 dashboard** (본문 위 한눈 표) | ❌ | ✅ | ✅ | 자동 도출 (options 의 `recommended:true` + `reason`) |
-| **옵션 비교 matrix** (각 Q 안) | ❌ | ✅ (text only) | ✅ (text + radar) | 옵션 안 `matrix_summary: {pros_core, cons_core, cost_level, risk_level}` |
-| **confidence indicator** (●●●●○) | ❌ | ❌ | ✅ | 옵션 안 `confidence: 1-5` |
-| **radar chart** (5축 visual) | ❌ | ❌ | ✅ | 옵션 안 `axes: {benefit, cost, risk, impact, effort}` (1-5 척도) |
-| **impact area** (영향 영역 시각화) | ❌ | ❌ | ✅ | 질문 안 `impact: {title, areas[], mermaid}` |
-
-★ 자동 차등 = 사용자가 명시 X. T3 spec 박제 시 5 widget 자동. `matrix_summary` / `confidence` / `axes` / `impact` 없으면 해당 widget 자동 skip (graceful degradation).
+★ Tier 분기 X — 모든 case 동일 layout. Tier 차등 = *콘텐츠 풍부도* 만 (Pros/Cons 깊이, 영향 영역 명시 등).
 
 ---
 
@@ -72,20 +51,23 @@ argument-hint: <고민 설명>
   "h1": "<H1 텍스트>",
   "date": "YYYY-MM-DD",
   "branch": "<git 브랜치>",
-  "meta": "<context 부연 — meta line 에 박제>",
+  "meta": "<context 부연>",
   "source_html": "<CWD>/.claude-history/html-decision/<filename>.html",
-  "tier": "T1|T2|T3",
+  "background": {
+    "title": "📋 배경 — 분석 요약",
+    "bullets": ["배경 bullet 1", "배경 bullet 2", "..."],
+    "detail": "<선택. <details> 안 펼침 콘텐츠>"
+  },
   "questions": [
     {
       "id": "q1",
       "title": "Q1. <질문>",
       "nav_label": "Q1. <짧은 제목>",
       "desc": "<한 줄 설명>",
-      "context": "<왜 결정 필요 — 1-2 문장>",
+      "why": "<💡 왜 이 결정 필요 — 1-3 문장. 결정의 근거·맥락 명시>",
       "impact": {
-        "title": "📊 영향 영역",
         "areas": ["<file/모듈/사람>", "..."],
-        "mermaid": "flowchart LR\\n  Q1 --> X\\n  Q1 --> Y"
+        "mermaid": "<선택. flowchart code>"
       },
       "options": [
         {
@@ -94,36 +76,46 @@ argument-hint: <고민 설명>
           "recommended": true,
           "reason": "<1줄 이유>",
           "confidence": 4,
-          "axes": {
-            "benefit": 5, "cost": 4, "risk": 2, "impact": 5, "effort": 3
-          },
           "matrix_summary": {
-            "pros_core": "<60 char 핵심>",
-            "cons_core": "<60 char 핵심>",
-            "cost_level": "高|中|低",
-            "risk_level": "高|中|低"
+            "cost_level": "낮|중|높",
+            "risk_level": "낮|중|높"
           },
-          "detail": { "pros": "...", "cons": "...", "example": "..." }
+          "status": "✓ 정합 | ⚠️ violation | ⚡ boundary",
+          "detail": {
+            "pros": "<문자열 또는 list of strings>",
+            "cons": "<문자열 또는 list of strings>",
+            "example": "<구체 예시>"
+          }
         }
-      ],
-      "preview": { ... }
+      ]
     }
   ]
 }
 ```
 
-### 3.1 v0.5.0 신설 필드 (T2/T3 자동 차등 widget 활성)
+### 3.1 신설 / 변경 필드 (v0.6.0)
 
-| 필드 | 위치 | Tier | 의미 |
-|---|---|---|---|
-| `options[].confidence` | option | T3 | 1-5 (●●●●○). 권장 옵션의 Claude 확신도 |
-| `options[].axes` | option | T3 | 5축 (benefit/cost/risk/impact/effort) 각 1-5. radar chart 박제 |
-| `options[].matrix_summary` | option | T2+ | 옵션 비교 matrix 박제용 (pros_core/cons_core 65 char 한도, cost/risk level) |
-| `questions[].impact` | question | T3 | 영향 영역 시각화 (areas list 또는 mermaid) |
+| 필드 | 위치 | 의미 |
+|---|---|---|
+| `question.why` | question | 💡 왜 이 결정 필요 (highlight box 콘텐츠). **모든 Q 의무** |
+| `option.status` | option | ✓ 정합 / ⚠️ violation / ⚡ boundary 등 1단어 + icon. 옵션 비교 표 안 박제 |
+| `option.confidence` | option | 1-5 (●●●●○). 권장 옵션 의무. 다른 옵션 선택 |
+| `option.matrix_summary` | option | `{cost_level, risk_level}` 만 — pros_core/cons_core 제거 (option detail 카드가 대체) |
+| `background.bullets` | top-level | 배경 카드 bullet 영역 (기존 `ack.paragraphs` 대체) |
+| `background.detail` | top-level | "자세히" collapse 안 텍스트 |
 
-★ 위 필드 없으면 해당 widget 자동 skip. graceful degradation.
+### 3.2 제거 필드
 
-★ "기타 (직접 입력)" 옵션 = render.py 가 자동 박제 (마지막 위치). JSON 안 명시 X.
+| 제거 | 사유 |
+|---|---|
+| `option.axes` | radar chart 제거 |
+| `flow` | 본문 위 flow Mermaid 영역 제거 (Q 안 `impact.mermaid` 만 유지) |
+| `section_intro` | 시각 noise — 제거 |
+| `sidebar_aux` | sidebar 보조 anchor 영역 제거 (sidebar = 순수 목차) |
+| `preview` | preview-panel 제거 (옵션 비교 표가 흡수) |
+| `tier` | Tier 분기 제거 — 모든 case 동일 layout |
+
+★ "기타 (직접 입력)" 옵션 = render.py 자동 박제. JSON 안 명시 X.
 
 ---
 
@@ -137,10 +129,10 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/html-decision/scripts/render.py" \
 HTML_DECISION_SPEC_EOF
 ```
 
-- `CLAUDE_PLUGIN_ROOT` = Claude Code 가 플러그인 루트로 export 한 env (사용 가능). 없으면 `~/.claude/plugins/cache/html-decision/html-decision/<version>/` 사용
-- `<CWD>` = **현재 작업 디렉토리 절대경로** (예: `/Users/musinsa/dev/<project>`). Claude 가 system context 의 cwd 박제. ★ `--output` 인자 = **절대경로 의무**
-- `<topic-slug>` = 핵심 키워드 2-3 (kebab-case). 같은 시간 안 재호출 시 `-v2`, `-v3` 자동 부여 (사용자가 책임 — Claude 가 timestamp 또는 슬러그 변형)
-- output path 와 JSON 안 `source_html` 필드 = **일치 의무 + 둘 다 절대경로** (paste-back 식별 / 세션 끊김 대비). 상대경로 박제 시 render.py 가 cwd 기준 절대로 자동 변환 (safety net) 하지만 명시 절대 권장
+- `CLAUDE_PLUGIN_ROOT` = Claude Code 가 export 한 env. 없으면 `~/.claude/plugins/cache/html-decision/html-decision/<version>/` 사용
+- `<CWD>` = 현재 작업 디렉토리 절대경로
+- `<topic-slug>` = 핵심 키워드 2-3 (kebab-case). 같은 시간 충돌 시 `-v2`, `-v3` suffix
+- output path 와 JSON 안 `source_html` = **일치 의무 + 둘 다 절대경로**. 상대경로 박제 시 render.py 가 자동 변환
 
 ---
 
@@ -151,13 +143,13 @@ HTML 결정 캔버스 생성 완료.
 
 | | |
 |---|---|
-| 파일 | `.claude-history/html-decision/<filename>.html` |
-| 결정점 | <N>개 (Tier <T>) |
+| 파일 | `<output path>` |
+| 결정점 | <N>개 |
 
 브라우저 → 선택 → [생성] → [복사] → 채팅 붙여넣기.
 ```
 
-T3 시 1줄 추가: 📄 MD (기본) / 📦 JSON (자동화) / 💬 prompt (새 세션).
+★ N=0 시 "결정점 0개 (설명용 문서)" 박제.
 
 ---
 
@@ -167,12 +159,13 @@ T3 시 1줄 추가: 📄 MD (기본) / 📦 JSON (자동화) / 💬 prompt (새 
 |---|---|
 | 응답 형식 | HTML file 응답. 채팅 = file 경로 + 안내 3-5줄 |
 | render.py 호출 | Claude 가 HTML 직접 생성 X — render.py 만 사용 |
-| 옵션 마지막 = 기타 | render.py 자동 박제 (JSON 안 명시 X) |
-| 권장 옵션 | `recommended: true` + `reason` 1줄 박제 (가능 시) |
-| context block | `context` 필드 = 모든 결정점 의무 (왜 결정 필요) |
-| Pros/Cons detail | `detail: {pros, cons, example?}` = strategy 결정 시 의무 |
-| MD 파싱 | 결과 paste-back parse rule = `references/output-formats.md` |
-| 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html` (절대경로 의무) |
+| 모든 case 동일 layout | N=0/1/2+ 무관 — sidebar + 5 영역 동일 박제 |
+| 💡 왜 이 결정 필요 (`question.why`) | 모든 Q 의무 박제 |
+| 권장 옵션 | `recommended: true` + `reason` 1줄 + `confidence` 박제 (가능 시) |
+| matrix_summary | `cost_level` + `risk_level` 의무 (옵션 비교 표 활용) |
+| option detail 카드 | 권장 옵션 = pros/cons/example 의무. 다른 옵션 = 선택 |
+| MD 파싱 | paste-back parse rule = `references/output-formats.md` |
+| 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html` 절대경로 |
 
 ---
 
@@ -188,7 +181,7 @@ parse 상세 = `references/output-formats.md`.
 
 | 파일 | 언제 읽나 |
 |---|---|
-| `references/content-rules.md` | 결정점 분해 + 옵션 작성 + Pros/Cons + 권장 mark + ack/flow/preview content 패턴 |
+| `references/content-rules.md` | 결정점 분해 + 옵션 작성 + Pros/Cons + 💡 왜 wording + 배경/영향 content 패턴 |
 | `references/output-formats.md` | paste-back 처리 시 (MD/JSON/prompt parse rule) |
 
 ★ `scripts/template.html` 과 `scripts/render.py` = 구조 SSOT. Claude 가 직접 읽을 필요 X (render.py 가 처리).

@@ -1,23 +1,22 @@
 # Content Rules
 
-결정점 / 옵션 / 권장 / Pros/Cons / context / ack / flow / preview 의 **편집적 content 룰**. 구조 / CSS / JS = `scripts/template.html` + `scripts/render.py` 가 담당.
+결정점 / 옵션 / 권장 / Pros/Cons / 💡 왜 / 배경 / 영향 의 **편집적 content 룰**. 구조 / CSS / JS = `scripts/template.html` + `scripts/render.py` 가 담당.
+
+★ 모든 case (N=0, 1, 2+) 동일 layout. 결정점 N=0 도 가능 (설명용 문서).
 
 ---
 
 ## 목차
 - §1 결정점 분해 룰
 - §2 옵션 작성 룰 + 권장 옵션 mark
-- §3 Pros / Cons / 예시 작성 가이드
-- §4 q-context wording (왜 결정 필요)
-- §5 ack-area (선행 결정 박제) — T3 trigger #4 시
-- §6 flow Mermaid (의존 sequence) — T3 의존 sequence 시
-- §7 section-intro highlight — 결정점 grouping 시
-- §8 preview-panel (옵션 영향 live preview) — T3 옵션 영향 예측 가능 시
-- §9 vague 고민 처리
-- **§11 confidence indicator** (T3) — Claude 확신도
-- **§12 axes 5축** (T3) — radar chart 데이터
-- **§13 matrix_summary** (T2+) — 옵션 비교 matrix
-- **§14 impact area** (T3) — 결정 영향 영역 시각화
+- §3 Pros / Cons / 예시 작성 가이드 (option detail 카드)
+- §4 💡 왜 이 결정 필요 (`question.why`) — 모든 Q 의무
+- §5 배경 카드 (`background`) — 본문 위 영역
+- §6 영향 영역 (`impact`) — Q 안 collapse
+- §7 confidence indicator (`option.confidence`)
+- §8 matrix_summary — 옵션 비교 표 데이터
+- §9 option.status — 1단어 + icon 상태
+- §10 vague 고민 처리
 
 ---
 
@@ -25,8 +24,8 @@
 
 - **독립 분해**: A 와 B 가 독립이면 별도 Q 분리
 - **의존 sequence 인식**: A 결정이 B 의 input 이면 A 가 선행 (순서 의미)
-- **영역 별 grouping**: 같은 영역 (예: 구조 / 적용 / 검증) = 같은 phase (T3 N≥8 시 phase 분리)
 - **옵션 수**: max 5 + 기타 (1). 사용자 인지 부담 최소화
+- **N=0 허용**: 결정점 없이 *설명용 문서* 도 가능. 동일 layout 박제
 
 ---
 
@@ -34,152 +33,136 @@
 
 | 필드 | 내용 |
 |---|---|
-| `value` | slug (kebab-case). 예: `"single"`, `"phased-2"` |
+| `value` | slug (kebab-case). 예: `"single"`, `"hitl-response"` |
 | `label` | 사용자에게 보이는 옵션 설명. HTML 허용 (`<code>`, `<strong>` 등) |
-| `recommended` | `true` 1건만. Claude 가 권장 가능한 경우 한정. 사용자 결정 영역 (Claude oracle 불가) = 권장 생략 OK |
-| `reason` | 1줄 이유. 권장 옵션 또는 단순 옵션에 박제 (Pros/Cons 가 필요 없을 때) |
-| `detail` | Pros/Cons/예시 (§3) — strategy 결정 시 의무 |
+| `recommended` | `true` 1건만. Claude 가 권장 가능한 경우 한정 |
+| `reason` | 1줄 이유 (권장 옵션 의무) |
+| `confidence` | 1-5 (●●●●○). 권장 옵션 의무 |
+| `matrix_summary` | `{cost_level, risk_level}` — 옵션 비교 표 활용 |
+| `status` | 1단어 + icon ("✓ 정합" / "⚠️ violation" / "⚡ boundary") — 옵션 비교 표 안 박제 |
+| `detail` | `{pros, cons, example?}` — option detail 카드 |
 
 ★ "기타 (직접 입력)" 옵션 = render.py 자동 박제. JSON 안 명시 X.
 
 ---
 
-## 3. Pros / Cons / 예시 작성 가이드
+## 3. Pros / Cons / 예시 작성 가이드 (option detail 카드)
 
-`detail: { pros, cons, example? }` — strategy 결정 시 의무 박제.
+`detail: { pros, cons, example? }` — 옵션 detail collapse 안 카드 형식으로 박제.
 
-| 필드 | 내용 | 작성 가이드 |
-|---|---|---|
-| `pros` | 장점 1-2 문장 | 결정 영향 본질 영역. 결과 / 정합 / 단순화 등 |
-| `cons` | 단점 1-2 문장 | 비용 / 부담 / risk 영역 |
-| `example` | (선택) 구체 예시 | 수치 / file / code / 결과 — 가능 시 박제 |
+### 3.1 형식
 
-생략 허용: 단순 binary / 명확한 차이 시 `reason` 1줄로 갈음 (`detail` 생략).
+- `pros` / `cons` = **list of strings** (각 항목 = 카드 안 한 bullet 으로 박제) 또는 단일 string
+- `example` = 구체 예시 (수치 / file / code / 결과). 가능 시 박제
+- 카드 안 visual = ✅ (Pros) / ⚠️ (Cons) / 📌 (예시) icon + bullet 형식
+- 권장 옵션 카드 = 녹색 강조
 
-판단 기준: Pros 와 Cons 가 *같은* 문장 안 자연히 담기면 `reason` 만. *서로 다른* 영역이면 `detail` 박제.
+### 3.2 작성 가이드
 
----
+| 영역 | 의도 |
+|---|---|
+| `pros` 항목 수 | 3-5 권장. 1건이 핵심이라면 1건도 OK |
+| `cons` 항목 수 | 2-3 권장 |
+| 항목 길이 | 1줄 (60-80 char) 권장. 너무 길면 chunking |
+| `example` | 1 항목 (멀티라인 OK) |
 
-## 4. q-context wording
+### 3.3 생략 허용
 
-`context` 필드 = 모든 결정점 의무. **왜 이 결정 필요한지** 1-2 문장.
-
-### q-desc vs q-context
-
-- `desc` = 질문 그 자체의 한 줄 부연 (예: "단일 PR vs phased")
-- `context` = *왜* 이 결정 필요한지 (예: "Step 1-4 의 file 분포: references 5 / sub-agent 4 / skill body 2. 의존 sequence = Step 1 → 2 → 3 → 4.")
-
-context 가 *명시* 불가 (단순 선호도) = 짧은 1문장 정합 박제 ("선호도 / 우선순위 결정").
+- 단순 binary / 명확한 차이 시 detail 생략 가능 (옵션 비교 표 만으로 충분)
+- 단 권장 옵션 = `detail.pros + cons` 의무 (사용자가 *왜 권장* 인지 알기 위해)
 
 ---
 
-## 5. ack-area — T3 trigger #4
+## 4. 💡 왜 이 결정 필요 (`question.why`) — 모든 Q 의무
 
-연속 cycle 안 *이전 결정* 정리 highlight. working memo / 이전 결정 cross-ref.
+각 결정점의 *근거 + 맥락* 1-3 문장. highlight box 안 prominent 박제.
+
+### 4.1 의도
+
+- 사용자가 *Q 만 보고* 결정 가능하도록 *근거 명시*
+- *왜 이 결정이 필요한지* + *어떤 frame 으로 옵션 평가하는지* 박제
+- 형식 = string 또는 list of strings (multi-paragraph)
+
+### 4.2 좋은 예시
 
 ```json
-"ack": {
-  "title": "이전 N 결정 확정 ack — working memo 박제",
-  "paragraphs": [
-    "working memo: <code>{path}</code> §{section} 안 결정 통합 표 박제.",
-    "{결정 요약 1-2 문장 — 영역 별 카운트 / 핵심 결과}",
-    "★ 본 결정 = 위 결정 후 다음 step 진행 전 사전 확정 의무 영역."
-  ]
+"why": "ADR-04 = 5축 모두 yes (도메인 + NFR + Dependencies + Interfaces + Construction). Workflow 패턴 채택 = 임의 판단 영역 X. framework §5.1 Axis 1 = HITL-in-flight 의무."
+```
+
+### 4.3 나쁜 예시
+
+```json
+"why": "결정 필요."     // 너무 짧음
+"why": ""               // 빈 박제 (의무 위반)
+```
+
+---
+
+## 5. 배경 카드 (`background`) — 본문 위 영역
+
+본문 상단 *항상 visible* 박제. 분석 요약 + (선택) "자세히" collapse.
+
+### 5.1 형식
+
+```json
+"background": {
+  "title": "📋 배경 — 분석 요약",   // 선택. default = "📋 배경 — 분석 요약"
+  "bullets": [
+    "context bullet 1",
+    "<strong>강조</strong> 영역",
+    "기타 ..."
+  ],
+  "detail": "자세히 안 펼침 콘텐츠 (선택)"
 }
 ```
 
-`paragraphs[]` = HTML 허용 (`<code>`, `<strong>` 등).
+### 5.2 가이드
+
+- `bullets` 항목 수 = 3-6 권장
+- 각 bullet 짧게 (1줄 권장, 멀티라인 X)
+- HTML 허용 (`<strong>`, `<code>` 등)
+- `detail` = 긴 보조 정보 (사용자 *필요 시* 펼침)
 
 ---
 
-## 6. flow Mermaid — 의존 sequence 시각화
+## 6. 영향 영역 (`impact`) — Q 안 collapse
+
+각 결정점의 *영향 영역 시각화* — Q 카드 안 collapse `<details>`.
+
+### 6.1 형식
 
 ```json
-"flow": {
-  "title": "{영역} timeline",
-  "mermaid": "flowchart LR\n    A[Step 1] --> B[Step 2]\n    B --> C[Step 3]\n    style A fill:#dbeafe,stroke:#1e40af"
-},
-"use_mermaid": true
+"impact": {
+  "areas": [
+    "decisions.md ADR-04 status",
+    "lld §6.2.batch",
+    "..."
+  ],
+  "mermaid": "<선택. flowchart code>"
+}
 ```
 
-★ `use_mermaid: true` 박제 시 render.py 가 Mermaid CDN 자동 박제.
+### 6.2 가이드
 
-발동 조건: 의존 sequence (A → B → C) 가 *명확* + 시각화 가치 있을 때 한정. 단순 list 로 갈음 가능 시 list 만 박제 (grace degradation).
+- `areas` = list. 영향 file / 모듈 / 사람
+- `mermaid` = 복잡한 의존 시각화. 단순 list 로 갈음 가능 시 생략
+- 추상 영향 = areas 만 / 구체 의존 = Mermaid 추가
 
-### ⚠️ Mermaid syntax 주의 (깨짐 방지)
+### 6.3 ⚠️ Mermaid syntax 주의
 
 | 영역 | ❌ 깨짐 | ✅ 정합 |
 |---|---|---|
-| 노드 label 줄바꿈 | `A[Step 1\nrefs]` (Mermaid 가 newline = statement 종결로 parse) | `A[Step 1<br/>refs]` 또는 quoted `A["Step 1<br/>refs"]` |
-| dotted arrow label | `A -.gate.-> B` (`-.text.->` syntax 모호) | `A -.-> B` (label 제거) |
-| gate / 강조 노드 | `ALL[전 영역]` (rectangle, 약함) | `ALL(["전 영역 gate"])` (stadium-shape, 강조) |
-| 한글 + 공백 label | `A[전 영역 gate]` (보통 OK 지만 unicode + 공백 시 quoted 안전) | `A["전 영역 gate"]` |
-
-★ Mermaid statement *간* newline (예: `A --> B\nB --> C`) = OK. 깨짐 영역 = **노드 label 안 newline** 만.
+| 노드 label 줄바꿈 | `A[Step 1\nrefs]` | `A[Step 1<br/>refs]` 또는 quoted `A["Step 1<br/>refs"]` |
+| dotted arrow label | `A -.text.-> B` | `A -.-> B` (label 제거) |
+| 한글 + 공백 label | `A[전 영역 gate]` | `A["전 영역 gate"]` (quoted) |
 
 ---
 
-## 7. section-intro highlight
+## 7. confidence indicator (`option.confidence`)
 
-```json
-"section_intro": "Q1 = {영역 1} / Q2 = {영역 2} / Q3 = {영역 3} (★ {강조 메모})."
-```
+각 옵션의 Claude 확신도 = `confidence: 1-5`. 시각 = `●●●●○`.
 
-발동 조건: 결정점 grouping (phase 분리 또는 영역 별 묶음) 시 한정 박제.
-
----
-
-## 8. preview-panel — 옵션 영향 live preview
-
-옵션 선택 시 영향 영역 즉시 view (table). 질문 안 `preview` 필드:
-
-```json
-"preview": {
-  "title": "📋 선택 시 PR 분포 (live)",
-  "intro": "옵션 선택 시 PR 단계 / file 분포 view",
-  "options": {
-    "single": {
-      "title": "단일 commit / PR",
-      "rows": [["PR 수", "1"], ["file", "17-18"], ["line", "~+1500/-300"]]
-    },
-    "phased-2": {
-      "title": "phased 2 단계",
-      "rows": [["PR 1", "base (5 file)"], ["PR 2", "main (12 file)"]]
-    }
-  }
-}
-```
-
-발동 조건: 옵션 영향 *예측 가능* + 영향 영역이 구체적일 때 (예: PR 분포 / file 영향 / 수치 변경) 한정 박제.
-
----
-
-## 9. vague 고민 처리
-
-- 명확치 않은 고민 = best-guess 다중 옵션 + 기타 (자동 박제) 활용
-- 한 cycle 안 자체 해결 — HTML 결과로 즉시 응답 (모든 의문은 다중 옵션 + 기타 입력 으로 흡수)
-
----
-
-## 10. 의무 invariant 요약
-
-| 영역 | 의무 |
-|---|---|
-| 옵션 max | 5 + 기타 (자동) |
-| 권장 옵션 | 1건 한정 + `reason` 1줄. 가능 시 박제 |
-| context | 모든 결정점 박제 (없으면 짧은 정합 1문장) |
-| Pros/Cons | strategy 결정 시 의무 박제 |
-| ack/flow/preview | situational — trigger 충족 시만 박제 |
-| **v0.5.0 widget** (T2+) | matrix_summary / confidence / axes / impact = T2 시 일부, T3 시 풀세트 자동 박제 |
-| HTML escape | `label` / `paragraphs` 등 HTML 허용 필드 = Claude 가 직접 HTML 입력. 그 외 (`title`, `desc`, `context`) = plain text (render.py 는 이 필드들도 그대로 박제 — XSS 영역 X, 자체 출력 file) |
-
----
-
-## 11. confidence indicator (T3 의무 — options 안 박제)
-
-각 옵션 (특히 권장 옵션) 의 Claude 확신도 = `confidence: 1-5`.
-
-| 값 | 표시 | 의미 |
+| 값 | 시각 | 의미 |
 |---|---|---|
 | 5 | ●●●●● | 매우 확신 — 강한 컨센서스 / 명확한 best practice |
 | 4 | ●●●●○ | 권장 — 다른 옵션 대비 명확 우위 |
@@ -187,71 +170,42 @@ context 가 *명시* 불가 (단순 선호도) = 짧은 1문장 정합 박제 ("
 | 2 | ●●○○○ | 약한 권장 — 다른 옵션 가능성 큼 |
 | 1 | ●○○○○ | 권장 보류 — 사용자 영역 |
 
-★ 권장 옵션 (recommended:true) 시 의무. 다른 옵션 박제는 선택. dashboard 안 표시됨.
+★ 권장 옵션 의무. 다른 옵션 박제는 선택.
 
 ---
 
-## 12. axes 5축 (T3 의무 — options 안 박제, radar chart 활성)
+## 8. matrix_summary — 옵션 비교 표 데이터
 
-각 옵션의 5축 평가 = `axes: {benefit, cost, risk, impact, effort}` 각 1-5.
+각 옵션의 *비교용 등급* = `matrix_summary: {cost_level, risk_level}`. 옵션 비교 표 안 박제.
 
-| 축 | 의미 | 1-5 척도 |
-|---|---|---|
-| `benefit` | 효과 / 가치 | 1=낮음 / 5=매우 높음 |
-| `cost` | 비용 (시간 / $ / 자원) | 1=낮음 / 5=매우 높음 |
-| `risk` | 위험도 (실패 / 부작용 / 미지의 영향) | 1=낮음 / 5=매우 높음 |
-| `impact` | 영향 범위 (사람 / 시스템 / 영역) | 1=좁음 / 5=매우 넓음 |
-| `effort` | 구현 노력 (어려움 / 시간) | 1=쉬움 / 5=매우 어려움 |
-
-★ T3 strategy 결정 시 의무 박제. 옵션 2+ 가 axes 박제 시 radar chart 자동 활성 (visual 옵션 비교). 옵션 1개 또는 0개 → radar 자동 skip.
-
----
-
-## 13. matrix_summary (T2+ 의무 — options 안 박제, matrix 표 활성)
-
-각 옵션의 *비교용 핵심 요약* = `matrix_summary: {pros_core, cons_core, cost_level, risk_level}`.
-
-| 필드 | 내용 | 길이 한도 |
-|---|---|---|
-| `pros_core` | Pros 핵심 (matrix 표 셀용) | **60 char 이하** (이상 시 자동 truncate) |
-| `cons_core` | Cons 핵심 (matrix 표 셀용) | **60 char 이하** |
-| `cost_level` | 비용 등급 | `"高"`, `"中"`, `"低"` 중 한 단어 |
-| `risk_level` | 위험 등급 | `"高"`, `"中"`, `"低"` 중 한 단어 |
-
-★ `detail.pros/cons` 와 별개 — `matrix_summary` 가 **한눈 비교 표** 용. `detail` 은 클릭 후 expand. 두 영역 정합 유지.
-★ T2 시 박제 의무. T3 시 axes 와 함께 박제 (matrix + radar 시너지).
-
----
-
-## 14. impact area (T3 의무 — questions 안 박제, impact-area block 활성)
-
-결정의 *영향 영역 시각화* = `impact: {title, areas, mermaid}`.
-
-```json
-"impact": {
-  "title": "📊 결정 영향 영역",
-  "areas": [
-    "scripts/render.py",
-    "template.html",
-    "content-rules.md"
-  ],
-  "mermaid": "flowchart LR\n  Q1 --> render.py\n  Q1 --> template.html\n  Q1 --> rules"
-}
-```
-
-| 필드 | 의미 |
+| 필드 | 값 |
 |---|---|
-| `title` | h5 헤딩 (기본: "📊 영향 영역") |
-| `areas` | list — 영향 file / 모듈 / 사람. 단순 case 권장 |
-| `mermaid` | flowchart 코드. 복잡한 의존 영역 시각화 시 권장 |
+| `cost_level` | `"낮"`, `"중"`, `"높"` 중 한 단어 |
+| `risk_level` | `"낮"`, `"중"`, `"높"` 중 한 단어 |
 
-★ 둘 중 하나 또는 둘 다 박제 가능. 둘 다 박제 시 list + Mermaid 함께 표시.
-★ T3 + 영향 영역 명확 시 의무. 추상 영향 = list 만 / 구체 의존 = Mermaid 추가.
+★ 옵션 비교 표 박제 시 의무. 표 안 색상 badge (녹/주/빨) 자동 적용.
 
-### ⚠️ Mermaid syntax 주의 (§6 정합 — 동일 룰)
+---
 
-flow Mermaid (§6) 와 동일한 syntax 룰 적용:
-- 노드 label 안 줄바꿈 = `<br/>` (★ `\n` 금지)
-- dotted arrow label = `-.->` (label 제거 — `-.text.->` syntax 모호)
-- 한글 + 공백 label = `A["label"]` (quoted 안전)
-- 단순 case (impact area = single-line + 한글 label only) = 보통 정상 렌더
+## 9. option.status — 1단어 + icon
+
+각 옵션의 *상태* — 옵션 비교 표 안 우측 column.
+
+| 값 | 의미 | CSS |
+|---|---|---|
+| `"✓ 정합"` | 권장 / framework 정합 / OK | 녹색 |
+| `"⚠️ violation"` | 명시 위반 | 빨강 |
+| `"⚠️ 비판 미충족"` | 사용자 비판 미해결 | 빨강 |
+| `"⚡ boundary"` | boundary case / 미해결 영역 | 주황 |
+| `"⚡ mismatch"` | 일부 mismatch / over-engineer | 주황 |
+| `"⚡ 모호"` | enum / 정의 모호 | 주황 |
+
+★ prefix icon (`✓` / `⚠️` / `⚡`) → render.py 가 CSS class 자동 매핑. 1단어 키워드 추가 (예: "✓ 정합", "⚡ boundary").
+
+---
+
+## 10. vague 고민 처리
+
+- 명확치 않은 고민 = best-guess 다중 해석 옵션 + 기타 (자동 박제) 활용
+- 한 cycle 안 자체 해결 — HTML 결과로 즉시 응답
+- N=0 (설명용 문서) 도 가능 — 결정점 없이 배경 카드 만으로 공유 가능

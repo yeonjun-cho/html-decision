@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""html-decision 캔버스 렌더러.
+"""html-decision 캔버스 렌더러 (v0.6.0).
 
 사용법:
     python3 render.py --output <path> < spec.json
     python3 render.py --input <spec.json> --output <path>
 
-JSON spec → HTML 결정 캔버스. template.html (같은 디렉토리) 박제 후 placeholders 치환.
+JSON spec → HTML 결정 캔버스. template.html 박제 후 placeholders 치환.
+
+v0.6.0 design 원칙:
+- 모든 case (N=0, 1, 2+) 동일 layout (sidebar + 본문 5 영역)
+- sidebar = 순수 목차 (anchor only)
+- 본문 = header / 📋 배경 / 🎯 권장 요약 / Q × N / ✏️ 결과 추출
 
 Python 3.8+ stdlib only.
 """
@@ -22,21 +27,6 @@ TEMPLATE_NAME = "template.html"
 MERMAID_CDN = (
     '<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>'
 )
-CHART_CDN = (
-    '<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>'
-)
-
-# Tier 별 자동 차등 widget 박제 영역.
-WIDGETS_BY_TIER = {
-    "T1": set(),
-    "T2": {"dashboard", "matrix"},
-    "T3": {"dashboard", "matrix", "radar", "impact", "confidence"},
-}
-
-# axis label 한국어 → level 표기 (matrix 의 axis 셀에 사용).
-AXIS_LEVEL_LABELS = {
-    1: "低", 2: "低", 3: "中", 4: "高", 5: "高",
-}
 
 
 def esc(s):
@@ -46,235 +36,11 @@ def esc(s):
     return html_escape(str(s), quote=True)
 
 
-def esc_attr(s):
-    """attribute escape (quote=True 의 별칭)."""
-    return esc(s)
-
-
-def maybe(s):
-    """None / 빈 문자열 → 빈 출력."""
-    return s if s else ""
-
-
 # ---------- per-section renderers ----------
 
 
-def render_option(opt, q_id, idx):
-    """단일 옵션 카드 HTML 생성."""
-    is_other = opt.get("value") == "other"
-    classes = ["option"]
-    if opt.get("recommended"):
-        classes.append("recommended")
-    if is_other:
-        classes.append("other-option")
-    class_attr = " ".join(classes)
-
-    rec_tag = (
-        ' <span class="recommended-tag">권장</span>' if opt.get("recommended") else ""
-    )
-    label = opt.get("label", "")
-    reason = opt.get("reason")
-    detail = opt.get("detail") or {}
-
-    parts = [
-        f'  <label class="{class_attr}">',
-        f'    <input type="radio" name="{q_id}" value="{esc_attr(opt["value"])}">',
-        f'    <span class="opt-label">{label}{rec_tag}</span>',
-    ]
-    if reason:
-        parts.append(f'    <span class="opt-reason">{reason}</span>')
-
-    if detail and not is_other:
-        pros = detail.get("pros")
-        cons = detail.get("cons")
-        example = detail.get("example")
-        if pros or cons or example:
-            parts.append('    <details class="option-detail">')
-            parts.append("      <summary>자세히</summary>")
-            parts.append('      <div class="detail-body">')
-            if pros:
-                parts.append(f'        <p class="pros"><strong>Pros</strong>: {pros}</p>')
-            if cons:
-                parts.append(f'        <p class="cons"><strong>Cons</strong>: {cons}</p>')
-            if example:
-                parts.append(
-                    f'        <p class="example"><strong>예시</strong>: {example}</p>'
-                )
-            parts.append("      </div>")
-            parts.append("    </details>")
-
-    parts.append("  </label>")
-    return "\n".join(parts)
-
-
-def render_question(q, tier):
-    """단일 결정점 카드 HTML 생성."""
-    q_id = q["id"]
-    title = q.get("title", "")
-    desc = q.get("desc")
-    context = q.get("context")
-    options = q.get("options", [])
-    preview = q.get("preview")
-
-    parts = [
-        f'<section class="question" id="{q_id}" data-qid="{q_id}">',
-        f'  <h2 class="q-title">{title}</h2>',
-    ]
-    if desc:
-        parts.append(f'  <p class="q-desc">{desc}</p>')
-    if context:
-        parts.append(f'  <div class="q-context">{context}</div>')
-
-    # D. 영향 영역 (T3) — context 다음
-    impact_html = render_impact_area(q, tier)
-    if impact_html:
-        parts.append(impact_html)
-
-    # A. 옵션 비교 matrix (T2+) — 옵션 카드 위
-    matrix_html = render_option_matrix(q, tier)
-    if matrix_html:
-        parts.append(matrix_html)
-
-    # F. radar chart (T3) — matrix 옆/아래
-    radar_html = render_radar_block(q, tier)
-    if radar_html:
-        parts.append(radar_html)
-
-    parts.append("")
-
-    for i, opt in enumerate(options):
-        parts.append(render_option(opt, q_id, i))
-
-    # 기타 옵션 (자동 박제 — 마지막 위치)
-    other_in_options = any(o.get("value") == "other" for o in options)
-    if not other_in_options:
-        parts.append(
-            f'  <label class="option other-option">\n'
-            f'    <input type="radio" name="{q_id}" value="other">\n'
-            f'    <span class="opt-label">기타 (직접 입력)</span>\n'
-            f"  </label>"
-        )
-    parts.append(
-        f'  <textarea class="other-input" data-for="{q_id}" rows="3" placeholder="직접 입력..."></textarea>'
-    )
-
-    # 코멘트 (T2+)
-    if tier in ("T2", "T3"):
-        parts.append("")
-        parts.append(f'  <div class="comment-wrap" data-for-comment="{q_id}">')
-        parts.append(
-            '    <label class="comment-label">코멘트 (선택, 부연/조건/맥락)</label>'
-        )
-        parts.append(
-            '    <textarea class="comment-input" rows="2" '
-            'placeholder="선택 이유 / 추가 조건 / 부연 설명"></textarea>'
-        )
-        parts.append("  </div>")
-
-    # preview-panel
-    if preview:
-        intro = preview.get("intro", "옵션 선택 시 영향 영역 view")
-        parts.append("")
-        parts.append(f'  <div class="preview-panel" data-for-preview="{q_id}">')
-        parts.append(f'    <h5>{preview.get("title", "📋 선택 시 영향 (live)")}</h5>')
-        parts.append(
-            f'    <div class="preview-content"><p class="empty">{intro}</p></div>'
-        )
-        parts.append("  </div>")
-
-    parts.append("</section>")
-    return "\n".join(parts)
-
-
-def render_sidebar(data, questions):
-    """T3 sticky sidebar HTML 생성."""
-    nav_items = []
-    aux = data.get("sidebar_aux") or []
-    for item in aux:
-        href = item.get("href", "#")
-        label = item.get("label", "")
-        nav_items.append(f'      <li><a href="{href}" class="nav-q">{label}</a></li>')
-    if aux and questions:
-        nav_items.append('      <li style="margin-top: 8px;"></li>')
-
-    for q in questions:
-        q_id = q["id"]
-        nav_label = q.get("nav_label") or q.get("title", q_id)
-        nav_items.append(
-            f'      <li><a href="#{q_id}" class="nav-q" data-q="{q_id}">{nav_label}</a></li>'
-        )
-
-    nav_items.append('      <li style="padding-top: 10px;">'
-                     '<a href="#submit" class="nav-q" '
-                     'style="color: var(--accent); font-weight: 600;">'
-                     '✏️ 결과 추출</a></li>')
-
-    return (
-        '<aside class="sidebar">\n'
-        "  <h3>진행</h3>\n"
-        '  <div class="progress-wrap">\n'
-        '    <div class="progress"><div class="progress-bar" id="prog-bar"></div></div>\n'
-        f'    <span class="progress-text" id="prog-text">0/{len(questions)} 답함</span>\n'
-        "  </div>\n"
-        "  <h3>네비게이션</h3>\n"
-        "  <nav>\n"
-        '    <ul class="nav-list">\n'
-        + "\n".join(nav_items)
-        + "\n    </ul>\n"
-        "  </nav>\n"
-        "</aside>"
-    )
-
-
-def render_ack(ack):
-    """ack-area 섹션 (선행 결정 박제)."""
-    if not ack:
-        return ""
-    title = ack.get("title", "이전 결정 ack")
-    paragraphs = ack.get("paragraphs") or []
-    p_html = "\n".join(f"    <p>{p}</p>" for p in paragraphs)
-    return (
-        '<section id="ack">\n'
-        '  <div class="ack-area">\n'
-        f"    <h4>📥 {title}</h4>\n"
-        f"{p_html}\n"
-        "  </div>\n"
-        "</section>"
-    )
-
-
-def render_flow(flow):
-    """flow-area 섹션 (Mermaid timeline)."""
-    if not flow:
-        return ""
-    title = flow.get("title", "흐름")
-    mermaid = flow.get("mermaid", "")
-    return (
-        '<section id="flow">\n'
-        '  <div class="flow-area">\n'
-        f"    <h4>🔄 {title}</h4>\n"
-        '    <div class="mermaid-wrap">\n'
-        '      <div class="mermaid">\n'
-        f"{mermaid}\n"
-        "      </div>\n"
-        "    </div>\n"
-        "  </div>\n"
-        "</section>"
-    )
-
-
-def render_section_intro(intro):
-    """section-intro highlight box."""
-    if not intro:
-        return ""
-    return f'<div class="section-intro">{intro}</div>'
-
-
-# ---------- v0.5.0 5 widget renderers ----------
-
-
 def render_confidence(level, show_label=True):
-    """E. confidence indicator — ●●●●○ + 라벨."""
+    """confidence indicator — ●●●●○ + 라벨."""
     if level is None:
         return ""
     try:
@@ -284,21 +50,75 @@ def render_confidence(level, show_label=True):
     level = max(0, min(5, level))
     filled = "●" * level
     empty = "○" * (5 - level)
-    label = f'<span class="confidence-label">{level}/5</span>' if show_label else ""
+    label_html = f'<span class="empty">{empty}</span>' if empty else ""
+    return f'<span class="conf">{filled}{label_html}</span>'
+
+
+def render_sidebar(data, questions):
+    """sidebar 목차 — 진행 + anchor list (모든 case 동일 구조)."""
+    nav_items = ['    <li><a href="#bg">📋 배경</a></li>']
+    if questions:
+        nav_items.append('    <li><a href="#rec">🎯 권장 요약</a></li>')
+    else:
+        # N=0 시 권장 요약 anchor 생략 (배경만)
+        pass
+    for q in questions:
+        q_id = q["id"]
+        nav_label = q.get("nav_label") or q.get("title", q_id)
+        nav_items.append(
+            f'    <li><a href="#{q_id}" data-q="{q_id}">{nav_label}</a></li>'
+        )
+    if questions:
+        nav_items.append('    <li><a href="#submit">✏️ 결과 추출</a></li>')
+    return "\n".join(nav_items)
+
+
+def render_bg_card(data):
+    """📋 배경 카드 (본문 위, 항상 박제 — id="bg")."""
+    bg = data.get("background") or data.get("ack") or {}
+    title = bg.get("title", "📋 배경 — 분석 요약")
+    bullets = bg.get("bullets") or bg.get("paragraphs") or []
+    detail = bg.get("detail")
+
+    bullets_html = ""
+    if bullets:
+        items = "\n".join(f"    <li>{b}</li>" for b in bullets)
+        bullets_html = f"  <ul>\n{items}\n  </ul>"
+    else:
+        bullets_html = '  <p style="color: var(--muted); font-style: italic; margin: 0;">배경 정보 없음.</p>'
+
+    detail_html = ""
+    if detail:
+        detail_html = (
+            "  <details>\n"
+            "    <summary>자세히</summary>\n"
+            f'    <div class="detail-text">{detail}</div>\n'
+            "  </details>"
+        )
+
     return (
-        f'<span class="confidence">'
-        f'<span class="filled">{filled}</span>'
-        f'<span class="empty">{empty}</span>'
-        f'</span>{label}'
+        '<section class="bg-card" id="bg">\n'
+        f'  <h3>{title}</h3>\n'
+        f"{bullets_html}\n"
+        f"{detail_html}\n"
+        "</section>"
     )
 
 
-def render_recommendations_dashboard(questions, tier):
-    """B. 권장 dashboard — 본문 위 한눈 표 (T2+ 의무)."""
-    if "dashboard" not in WIDGETS_BY_TIER.get(tier, set()):
-        return ""
+def render_dashboard(questions):
+    """🎯 권장 요약 dashboard (N=0 시 empty state)."""
+    if not questions:
+        return (
+            '<section class="dashboard" id="rec">\n'
+            '  <h3>🎯 Claude 권장 요약</h3>\n'
+            '  <div class="empty-state">\n'
+            '    <span class="emoji">📭</span>\n'
+            "    결정 영역 없음 — 본 문서는 설명/공유 용도\n"
+            "  </div>\n"
+            "</section>"
+        )
+
     rows = []
-    has_rec = False
     for q in questions:
         rec = next((o for o in (q.get("options") or []) if o.get("recommended")), None)
         qid = q.get("id", "")
@@ -307,208 +127,279 @@ def render_recommendations_dashboard(questions, tier):
             rows.append(
                 f'    <tr>'
                 f'<td><a class="q-link" href="#{qid}">{nav}</a></td>'
-                f'<td><span class="rec-reason">(권장 옵션 없음 — 사용자 영역)</span></td>'
+                f'<td><span class="reason">(권장 옵션 없음)</span></td>'
                 f'<td></td>'
                 f'<td></td>'
                 f'</tr>'
             )
             continue
-        has_rec = True
         opt_label = rec.get("label", "")
         reason = rec.get("reason", "")
-        conf_html = ""
-        if "confidence" in WIDGETS_BY_TIER.get(tier, set()):
-            conf_html = render_confidence(rec.get("confidence"))
+        conf_html = render_confidence(rec.get("confidence"))
         rows.append(
             f'    <tr>'
             f'<td><a class="q-link" href="#{qid}">{nav}</a></td>'
             f'<td class="rec-opt">{opt_label}</td>'
             f'<td>{conf_html}</td>'
-            f'<td class="rec-reason">{reason}</td>'
-            f'</tr>'
+            f'<td class="reason">{reason}</td>'
+            f"</tr>"
         )
 
-    if not has_rec and not rows:
-        return ""
-
-    conf_th = (
-        "<th>확신도</th>" if "confidence" in WIDGETS_BY_TIER.get(tier, set()) else "<th></th>"
-    )
     return (
-        '<div class="recommendations-dashboard">\n'
-        f'  <h3>🎯 Claude 권장 요약 ({len(questions)} 영역)</h3>\n'
-        '  <p class="dash-help">권장 옵션만 먼저 검토하고 sanity check → 아래 결정점 본문에서 detail 확인.</p>\n'
-        '  <table class="dash-table">\n'
-        '    <thead><tr>'
-        '<th>Q</th>'
-        '<th>권장 옵션</th>'
-        f'{conf_th}'
-        '<th>1줄 이유</th>'
-        '</tr></thead>\n'
-        '    <tbody>\n'
+        '<section class="dashboard" id="rec">\n'
+        "  <h3>🎯 Claude 권장 요약</h3>\n"
+        '  <p class="help">권장만 빠르게 확인 → 본문에서 자세한 내용</p>\n'
+        "  <table>\n"
+        "    <thead><tr>"
+        "<th>Q</th>"
+        "<th>권장</th>"
+        "<th>신뢰도</th>"
+        "<th>이유</th>"
+        "</tr></thead>\n"
+        "    <tbody>\n"
         + "\n".join(rows)
         + "\n    </tbody>\n"
         "  </table>\n"
-        "</div>"
+        "</section>"
     )
 
 
-def render_option_matrix(q, tier):
-    """A. 옵션 비교 matrix — 각 Q 안 첫머리 (T2+ 의무)."""
-    if "matrix" not in WIDGETS_BY_TIER.get(tier, set()):
+# axis label 한국어 → level 표기.
+AXIS_LEVEL_LABELS = {1: "낮", 2: "낮", 3: "중", 4: "높", 5: "높"}
+
+
+def _level_class(label):
+    """비용 / 위험도 등 한국어 등급 → CSS class."""
+    if not label:
         return ""
-    options = [o for o in (q.get("options") or []) if o.get("value") != "other"]
+    if label in ("낮", "低", "low"):
+        return "low"
+    if label in ("중", "中", "mid"):
+        return "mid"
+    if label in ("높", "高", "high"):
+        return "high"
+    return ""
+
+
+def _status_class(status):
+    """option.status 텍스트 → CSS class. ✓ / ⚠️ / ⚡ prefix 기반."""
+    if not status:
+        return ""
+    s = str(status).strip()
+    if s.startswith("✓") or "정합" in s or "ok" in s.lower():
+        return "ok"
+    if s.startswith("⚠"):
+        return "warn"
+    if s.startswith("⚡"):
+        return "bndry"
+    return ""
+
+
+def render_option_row(opt, recommended_in_table=False):
+    """옵션 비교 표 row."""
+    is_rec = opt.get("recommended", False)
+    rec_class = ' class="rec"' if is_rec else ""
+    star = "★" if is_rec else ""
+    ms = opt.get("matrix_summary") or {}
+    cost = ms.get("cost_level", "")
+    risk = ms.get("risk_level", "")
+    cost_cls = _level_class(cost)
+    risk_cls = _level_class(risk)
+    conf_html = render_confidence(opt.get("confidence"))
+    status = opt.get("status", "")
+    status_cls = _status_class(status)
+
+    label = opt.get("label", "")
+    return (
+        f"    <tr{rec_class}>"
+        f'<td class="star">{star}</td>'
+        f'<td class="opt-name">{label}</td>'
+        f'<td><span class="level {cost_cls}">{cost}</span></td>'
+        f'<td><span class="level {risk_cls}">{risk}</span></td>'
+        f"<td>{conf_html}</td>"
+        f'<td><span class="status {status_cls}">{status}</span></td>'
+        f"</tr>"
+    )
+
+
+def render_options_table(options):
+    """옵션 비교 표 — 옵션 / 비용 / 위험도 / 신뢰도 / 상태 5 column."""
+    options = [o for o in options if o.get("value") != "other"]
     if not options:
         return ""
-
-    # Pros/Cons/예시/cost/risk 요약 — matrix_summary 우선, 없으면 detail 에서 도출.
-    rows = []
-    for o in options:
-        rec_class = ' class="rec-row"' if o.get("recommended") else ""
-        rec_mark = "★" if o.get("recommended") else ""
-        ms = o.get("matrix_summary") or {}
-        detail = o.get("detail") or {}
-        pros = ms.get("pros_core") or detail.get("pros", "")
-        cons = ms.get("cons_core") or detail.get("cons", "")
-        # 본문에 들어갈 핵심만 — 너무 길면 자름.
-        pros_short = (pros[:60] + "…") if len(pros) > 65 else pros
-        cons_short = (cons[:60] + "…") if len(cons) > 65 else cons
-
-        # cost/risk level — matrix_summary 또는 axes 에서.
-        axes = o.get("axes") or {}
-        cost_level = ms.get("cost_level")
-        if not cost_level and axes.get("cost"):
-            cost_level = AXIS_LEVEL_LABELS.get(int(axes["cost"]), "")
-        risk_level = ms.get("risk_level")
-        if not risk_level and axes.get("risk"):
-            risk_level = AXIS_LEVEL_LABELS.get(int(axes["risk"]), "")
-
-        rows.append(
-            f'    <tr{rec_class}>'
-            f'<td class="opt-name">{rec_mark} {o.get("label", "")}</td>'
-            f'<td>{pros_short}</td>'
-            f'<td>{cons_short}</td>'
-            f'<td class="axis-cell axis-{esc(cost_level)}">{cost_level or "—"}</td>'
-            f'<td class="axis-cell axis-{esc(risk_level)}">{risk_level or "—"}</td>'
-            f'</tr>'
-        )
-
+    # 권장 옵션을 첫 row 로
+    rec = [o for o in options if o.get("recommended")]
+    non_rec = [o for o in options if not o.get("recommended")]
+    ordered = rec + non_rec
+    rows = "\n".join(render_option_row(o) for o in ordered)
     return (
-        '  <table class="option-matrix">\n'
-        '    <thead><tr>'
-        '<th>옵션</th>'
-        '<th>Pros 핵심</th>'
-        '<th>Cons 핵심</th>'
-        '<th>비용</th>'
-        '<th>risk</th>'
-        '</tr></thead>\n'
-        '    <tbody>\n'
-        + "\n".join(rows)
+        '  <table class="options-table">\n'
+        '    <thead><tr><th></th><th>옵션</th><th>비용</th><th>위험도</th><th>신뢰도</th><th>상태</th></tr></thead>\n'
+        "    <tbody>\n"
+        + rows
         + "\n    </tbody>\n"
         "  </table>"
     )
 
 
-def render_radar_block(q, tier):
-    """F. radar chart HTML container — 각 Q 안 (T3 한정)."""
-    if "radar" not in WIDGETS_BY_TIER.get(tier, set()):
-        return ""
-    qid = q.get("id", "")
-    # axes 데이터가 1개 옵션이라도 있어야 의미 있음.
-    options = [o for o in (q.get("options") or []) if o.get("value") != "other"]
-    has_axes = any(o.get("axes") for o in options)
-    if not has_axes:
-        return ""
+def render_option_card(opt):
+    """옵션 detail 카드 (✅ Pros / ⚠️ Cons / 📌 예시)."""
+    is_rec = opt.get("recommended", False)
+    rec_cls = " rec" if is_rec else ""
+    star = "★ " if is_rec else ""
+    label = opt.get("label", "")
+    conf_html = render_confidence(opt.get("confidence"))
+
+    detail = opt.get("detail") or {}
+    pros = detail.get("pros", "")
+    cons = detail.get("cons", "")
+    example = detail.get("example", "")
+
+    rows = []
+    if pros:
+        # pros 가 list 또는 string 둘 다 허용
+        items = pros if isinstance(pros, list) else [pros]
+        first = True
+        for item in items:
+            prefix = "<strong>Pros</strong> · " if first else ""
+            rows.append(
+                f'        <div class="row pros"><span class="row-icon">✅</span>'
+                f'<span class="row-text">{prefix}{item}</span></div>'
+            )
+            first = False
+    if cons:
+        items = cons if isinstance(cons, list) else [cons]
+        first = True
+        for item in items:
+            prefix = "<strong>Cons</strong> · " if first else ""
+            rows.append(
+                f'        <div class="row cons"><span class="row-icon">⚠️</span>'
+                f'<span class="row-text">{prefix}{item}</span></div>'
+            )
+            first = False
+    if example:
+        rows.append(
+            f'        <div class="row example"><span class="row-icon">📌</span>'
+            f'<span class="row-text"><strong>예시</strong> · {example}</span></div>'
+        )
+
+    rows_html = "\n".join(rows) if rows else ""
+
     return (
-        f'  <div class="radar-wrap">\n'
-        f'    <h5>🎯 옵션 비교 (5축 visual)</h5>\n'
-        f'    <canvas class="radar-canvas" data-qid="{qid}"></canvas>\n'
-        f'  </div>'
+        f'      <div class="opt-card{rec_cls}">\n'
+        f'        <div class="opt-card-head">\n'
+        f"          <h4>{star}{label}</h4>\n"
+        f'          <span class="opt-conf">{conf_html}</span>\n'
+        f"        </div>\n"
+        f"{rows_html}\n"
+        f"      </div>"
     )
 
 
-def render_impact_area(q, tier):
-    """D. 영향 영역 시각화 — 각 Q context block 옆 (T3 한정)."""
-    if "impact" not in WIDGETS_BY_TIER.get(tier, set()):
-        return ""
+def render_question(q):
+    """단일 결정점 카드 — 권장 mini + 💡 왜 + 옵션 표 + 옵션 detail + 영향 + 선택."""
+    q_id = q["id"]
+    title = q.get("title", "")
+    desc = q.get("desc", "")
+    why = q.get("why", "")
+    options = q.get("options") or []
     impact = q.get("impact") or {}
-    if not impact:
-        return ""
-    mermaid_code = impact.get("mermaid")
-    areas = impact.get("areas") or []
-    if not mermaid_code and not areas:
-        return ""
 
-    title = impact.get("title", "📊 영향 영역")
-    parts = [f'  <div class="impact-area">', f'    <h5>{title}</h5>']
-    if areas:
-        items = "".join(f"<li>{a}</li>" for a in areas)
-        parts.append(f'    <ul>{items}</ul>')
-    if mermaid_code:
-        parts.append(
-            f'    <div class="impact-mermaid"><div class="mermaid">{mermaid_code}</div></div>'
-        )
-    parts.append("  </div>")
-    return "\n".join(parts)
+    # 권장 옵션 찾기
+    rec_opt = next((o for o in options if o.get("recommended")), None)
 
-
-def collect_radar_data(questions, tier):
-    """F. radar chart 용 JS data — 모든 Q 의 axes data 통합."""
-    if "radar" not in WIDGETS_BY_TIER.get(tier, set()):
-        return {}
-    out = {}
-    for q in questions:
-        options = [o for o in (q.get("options") or []) if o.get("value") != "other"]
-        opts_with_axes = [o for o in options if o.get("axes")]
-        if len(opts_with_axes) < 2:
-            continue  # 비교 의미 X
-        # axis 순서 정합 — 첫 옵션의 axes 키 순서 사용.
-        axes_keys = list(opts_with_axes[0]["axes"].keys())
-        out[q["id"]] = {
-            "axes": axes_keys,
-            "options": [
-                {
-                    "label": o.get("label", ""),
-                    "values": [int(o["axes"].get(k, 0)) for k in axes_keys],
-                    "recommended": bool(o.get("recommended")),
-                }
-                for o in opts_with_axes
-            ],
-        }
-    return out
-
-
-def render_output_buttons(tier):
-    """Tier 별 format 버튼."""
-    btns = [
-        '    <button class="gen active" onclick="generate(\'md\')" id="btn-md">📄 MD 생성</button>'
+    parts = [
+        f'<section class="question" id="{q_id}" data-qid="{q_id}">',
+        f"  <h2>{title}</h2>",
     ]
-    if tier in ("T2", "T3"):
-        btns.append(
-            '    <button class="gen" onclick="generate(\'json\')" id="btn-json">📦 JSON 생성</button>'
-        )
-    if tier == "T3":
-        btns.append(
-            '    <button class="gen" onclick="generate(\'prompt\')" id="btn-prompt">💬 prompt 생성</button>'
-        )
-    return "\n".join(btns)
+    if desc:
+        parts.append(f'  <p class="q-desc">{desc}</p>')
 
+    # 🎯 권장 mini-card
+    if rec_opt:
+        conf_html = render_confidence(rec_opt.get("confidence"))
+        parts.append(
+            f'  <div class="q-rec">\n'
+            f"    {conf_html}\n"
+            f'    <span class="label">🎯 권장</span>\n'
+            f'    <div class="opt">{rec_opt.get("label", "")}</div>\n'
+            f'    <p class="reason">{rec_opt.get("reason", "")}</p>\n'
+            f"  </div>"
+        )
 
-def render_preview_data_js(questions):
-    """Q*_PREVIEWS const 박제 (JS data)."""
-    preview_data = {}
-    for q in questions:
-        preview = q.get("preview")
-        if not preview:
+    # 💡 왜 이 결정 필요
+    if why:
+        why_lines = why if isinstance(why, list) else [why]
+        why_html = "\n".join(f"    <p>{line}</p>" for line in why_lines)
+        parts.append(
+            f'  <div class="q-why">\n'
+            f'    <p class="why-title">💡 왜 이 결정 필요?</p>\n'
+            f"{why_html}\n"
+            f"  </div>"
+        )
+
+    # 옵션 비교 표
+    options_table = render_options_table(options)
+    if options_table:
+        parts.append(options_table)
+
+    # 옵션 detail 카드 (collapse)
+    non_other_opts = [o for o in options if o.get("value") != "other"]
+    if non_other_opts:
+        rec_opts = [o for o in non_other_opts if o.get("recommended")]
+        non_rec_opts = [o for o in non_other_opts if not o.get("recommended")]
+        ordered = rec_opts + non_rec_opts
+        cards = "\n".join(render_option_card(o) for o in ordered)
+        parts.append(
+            f'  <details class="option-details">\n'
+            f"    <summary>각 옵션 자세히 (카드 형식)</summary>\n"
+            f'    <div class="detail-body">\n'
+            f"{cards}\n"
+            f"    </div>\n"
+            f"  </details>"
+        )
+
+    # 영향 영역 (collapse)
+    areas = impact.get("areas") or []
+    mermaid_code = impact.get("mermaid")
+    if areas or mermaid_code:
+        impact_parts = ['  <details class="q-impact">', "    <summary>📊 영향 영역</summary>", '    <div class="impact-body">']
+        if areas:
+            items = "\n".join(f"        <li>{a}</li>" for a in areas)
+            impact_parts.append(f"      <ul>\n{items}\n      </ul>")
+        if mermaid_code:
+            impact_parts.append(
+                f'      <div class="impact-mermaid"><div class="mermaid">{mermaid_code}</div></div>'
+            )
+        impact_parts.append("    </div>")
+        impact_parts.append("  </details>")
+        parts.append("\n".join(impact_parts))
+
+    # 선택 영역
+    select_parts = ['  <div class="q-select">', "    <h3>선택</h3>"]
+    for opt in options:
+        if opt.get("value") == "other":
             continue
-        options = preview.get("options") or {}
-        if options:
-            preview_data[q["id"]] = options
-    if not preview_data:
-        return "const PREVIEW_DATA = {}; window.PREVIEW_DATA = PREVIEW_DATA;"
-    js = "const PREVIEW_DATA = " + json.dumps(preview_data, ensure_ascii=False, indent=2) + ";"
-    js += "\nwindow.PREVIEW_DATA = PREVIEW_DATA;"
-    return js
+        rec_cls = ' class="rec"' if opt.get("recommended") else ""
+        value = esc(opt.get("value", ""))
+        label = opt.get("label", "")
+        select_parts.append(
+            f'    <label{rec_cls}><input type="radio" name="{q_id}" value="{value}"> {label}</label>'
+        )
+    select_parts.append(
+        f'    <label><input type="radio" name="{q_id}" value="other"> 기타 (직접 입력)</label>'
+    )
+    select_parts.append(
+        f'    <textarea class="other-input" data-for="{q_id}" placeholder="직접 입력..."></textarea>'
+    )
+    select_parts.append(
+        f'    <textarea class="comment-input" data-for="{q_id}" placeholder="선택 이유 / 부연 / 조건 (선택)"></textarea>'
+    )
+    select_parts.append("  </div>")
+    parts.append("\n".join(select_parts))
+
+    parts.append("</section>")
+    return "\n".join(parts)
 
 
 # ---------- main ----------
@@ -521,17 +412,12 @@ def build(data):
     branch = data.get("branch")
     meta_extra = data.get("meta")
     source_html = data.get("source_html", "")
-    # source_html = 절대경로 의무 (paste-back 식별 + 세션 끊김 대비).
-    # 상대경로 박제 시 cwd 기준 절대경로 자동 변환 (safety net).
     if source_html and not Path(source_html).is_absolute():
         source_html = str(Path(source_html).resolve())
-    tier = data.get("tier", "T1").upper()
-    layout = data.get("layout") or ("with-sidebar" if tier == "T3" else "simple")
-    use_mermaid = bool(data.get("use_mermaid") or data.get("flow"))
-    use_localstorage = bool(data.get("use_localstorage", tier == "T3"))
 
     questions = data.get("questions") or []
     title = data.get("title") or topic
+    h1 = data.get("h1") or topic
 
     meta_parts = []
     if date:
@@ -542,37 +428,18 @@ def build(data):
         meta_parts.append(meta_extra)
     meta_line = " · ".join(meta_parts) if meta_parts else ""
 
-    h1 = data.get("h1") or topic
+    # body 영역
+    sidebar_nav = render_sidebar(data, questions)
+    bg_card = render_bg_card(data)
+    dashboard = render_dashboard(questions)
+    questions_block = "\n\n".join(render_question(q) for q in questions)
 
-    # body 조립
-    sidebar_block = render_sidebar(data, questions) if layout == "with-sidebar" else ""
-    ack_section = render_ack(data.get("ack"))
-    flow_section = render_flow(data.get("flow"))
-    section_intro = render_section_intro(data.get("section_intro"))
-    recommendations_dashboard = render_recommendations_dashboard(questions, tier)
-
-    questions_block = "\n\n".join(render_question(q, tier) for q in questions)
-
-    output_buttons = render_output_buttons(tier)
-    preview_data_js = render_preview_data_js(questions)
-
-    # F. radar chart 데이터 (T3 only) + Chart.js CDN
-    radar_data = collect_radar_data(questions, tier)
-    radar_data_js = (
-        f"const RADAR_DATA = {json.dumps(radar_data, ensure_ascii=False, indent=2)};\n"
-        "window.RADAR_DATA = RADAR_DATA;"
-    ) if radar_data else "const RADAR_DATA = {}; window.RADAR_DATA = RADAR_DATA;"
-    use_chart = bool(radar_data)
-
-    # D. impact-area Mermaid 박제 시 mermaid 도 켜짐
+    # Mermaid CDN — impact mermaid 또는 데이터 안 명시 시 활성
     has_impact_mermaid = any(
         (q.get("impact") or {}).get("mermaid") for q in questions
     )
-    if has_impact_mermaid:
-        use_mermaid = True
-
+    use_mermaid = bool(data.get("use_mermaid")) or has_impact_mermaid
     mermaid_script = MERMAID_CDN if use_mermaid else ""
-    chart_script = CHART_CDN if use_chart else ""
 
     # template 로드 + 치환
     template_path = Path(__file__).parent / TEMPLATE_NAME
@@ -581,30 +448,22 @@ def build(data):
     substitutions = {
         "{{TITLE}}": esc(title),
         "{{MERMAID_SCRIPT}}": mermaid_script,
-        "{{CHART_SCRIPT}}": chart_script,
-        "{{LAYOUT_CLASS}}": layout,
-        "{{SIDEBAR_BLOCK}}": sidebar_block,
         "{{H1}}": h1,
         "{{META}}": meta_line,
-        "{{ACK_SECTION}}": ack_section,
-        "{{FLOW_SECTION}}": flow_section,
-        "{{RECOMMENDATIONS_DASHBOARD}}": recommendations_dashboard,
-        "{{SECTION_INTRO}}": section_intro,
+        "{{SIDEBAR_NAV}}": sidebar_nav,
+        "{{BG_CARD}}": bg_card,
+        "{{DASHBOARD}}": dashboard,
         "{{QUESTIONS_BLOCK}}": questions_block,
-        "{{OUTPUT_BUTTONS}}": output_buttons,
         "{{SOURCE_HTML}}": source_html,
         "{{TOPIC}}": topic.replace('"', '\\"'),
         "{{DATE}}": date,
         "{{TOTAL_Q}}": str(len(questions)),
-        "{{USE_LOCALSTORAGE}}": "true" if use_localstorage else "false",
-        "{{PREVIEW_DATA_JS}}": preview_data_js + "\n\n" + radar_data_js,
     }
 
     result = template
     for key, val in substitutions.items():
         result = result.replace(key, val)
 
-    # 잔존 placeholder 검출 (디버그용)
     leftover = re.findall(r"\{\{[A-Z_]+\}\}", result)
     if leftover:
         sys.stderr.write(f"warning: unresolved placeholders: {set(leftover)}\n")
@@ -613,13 +472,9 @@ def build(data):
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="html-decision 캔버스 렌더러")
+    p = argparse.ArgumentParser(description="html-decision 캔버스 렌더러 v0.6.0")
     p.add_argument("--output", "-o", required=True, help="출력 HTML 경로")
-    p.add_argument(
-        "--input",
-        "-i",
-        help="JSON spec 파일 경로 (생략 시 stdin 에서 읽음)",
-    )
+    p.add_argument("--input", "-i", help="JSON spec 파일 (생략 시 stdin)")
     return p.parse_args()
 
 

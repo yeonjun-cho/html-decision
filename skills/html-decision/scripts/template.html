@@ -4,325 +4,361 @@
   <meta charset="utf-8">
   <title>{{TITLE}}</title>
   {{MERMAID_SCRIPT}}
-  {{CHART_SCRIPT}}
   <style>
 :root {
-  --bg: #f9fafb; --card: #fff; --border: #e5e7eb; --text: #1f2937;
-  --muted: #6b7280; --accent: #2563eb; --rec: #10b981; --rec-bg: #ecfdf5;
+  --bg: #fafafa; --card: #fff; --border: #e5e7eb; --border-soft: #f3f4f6;
+  --text: #1f2937; --muted: #6b7280; --accent: #2563eb;
+  --rec: #10b981; --rec-bg: #f0fdf4; --rec-bg-soft: #f7fee7; --rec-dark: #065f46;
+  --low: #16a34a; --low-bg: #dcfce7; --mid: #ca8a04; --mid-bg: #fef3c7;
+  --high: #dc2626; --high-bg: #fee2e2; --warn: #f59e0b; --warn-bg: #fffbeb;
+  --info-bg: #eff6ff; --info-border: #bfdbfe;
 }
 * { box-sizing: border-box; }
+body {
+  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+  margin: 0; background: var(--bg); color: var(--text); line-height: 1.65;
+  display: flex; min-height: 100vh;
+}
 
-body { font-family: system-ui, -apple-system, "Noto Sans KR", "Segoe UI", sans-serif;
-       background: var(--bg); color: var(--text); line-height: 1.6; }
-body.simple { max-width: 920px; margin: 40px auto; padding: 0 16px; }
-body.with-sidebar { display: flex; min-height: 100vh;
-                     max-width: none; margin: 0; padding: 0; }
-
-.sidebar { position: sticky; top: 0; height: 100vh; width: 260px;
-           flex-shrink: 0; padding: 24px 20px; background: var(--card);
-           border-right: 1px solid var(--border); overflow-y: auto;
-           font-size: 0.88em; }
-.sidebar h3 { font-size: 0.95em; color: #4b5563; margin: 18px 0 8px;
-              text-transform: uppercase; letter-spacing: 0.05em; }
-.sidebar h3:first-child { margin-top: 0; }
-
-.progress-wrap { margin-bottom: 20px; }
-.progress { background: var(--border); height: 8px; border-radius: 4px;
-            overflow: hidden; }
-.progress-bar { height: 100%; background: linear-gradient(90deg, var(--rec), #059669);
-                width: 0%; transition: width 0.3s; }
-.progress-text { font-size: 0.85em; color: var(--muted);
-                 margin-top: 4px; display: block; }
-
+/* sidebar — 순수 목차 only */
+.sidebar {
+  position: sticky; top: 0; height: 100vh; width: 240px;
+  flex-shrink: 0; padding: 28px 18px; background: var(--card);
+  border-right: 1px solid var(--border); overflow-y: auto; font-size: 0.86em;
+}
+.sidebar-title {
+  font-size: 0.68em; color: var(--muted); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 8px;
+}
+.sidebar-title:not(:first-child) { margin-top: 24px; }
+.progress-bar-wrap {
+  background: var(--border-soft); height: 6px; border-radius: 3px;
+  overflow: hidden; margin-bottom: 4px;
+}
+.progress-bar {
+  height: 100%; background: linear-gradient(90deg, var(--rec), #059669);
+  width: 0%; transition: width 0.3s;
+}
+.progress-text { font-size: 0.82em; color: var(--muted); }
 .nav-list { list-style: none; padding: 0; margin: 0; }
-.nav-q { display: block; padding: 5px 12px; color: #4b5563;
-         text-decoration: none; font-size: 0.85em;
-         border-left: 3px solid transparent; transition: all 0.15s; }
-.nav-q:hover { background: #f3f4f6; color: var(--text); }
-.nav-q.active { background: var(--rec-bg); border-left-color: var(--rec);
-                color: #065f46; font-weight: 500; }
-.nav-q.answered::before { content: "✓ "; color: var(--rec); font-weight: 600; }
+.nav-list li { margin: 1px 0; }
+.nav-list a {
+  display: block; padding: 8px 10px; color: var(--text);
+  text-decoration: none; font-size: 0.85em; border-radius: 5px;
+  border-left: 2px solid transparent; transition: background 0.1s;
+}
+.nav-list a:hover { background: var(--border-soft); }
+.nav-list a.active {
+  background: var(--rec-bg); border-left-color: var(--rec);
+  color: var(--rec-dark); font-weight: 500;
+}
+.nav-list a.answered::before { content: "✓ "; color: var(--rec); font-weight: 600; }
 
-.main { flex: 1; padding: 40px 50px 80px; overflow-x: hidden; min-width: 0; }
-body.with-sidebar .main { max-width: calc(100% - 260px); }
-body.simple .main { max-width: 100%; padding: 0; }
+/* main */
+.main { flex: 1; max-width: 860px; padding: 36px 40px 80px; min-width: 0; }
+h1 { margin: 0 0 6px; font-size: 1.4em; font-weight: 600; }
+.meta { font-size: 0.86em; color: var(--muted); margin: 0 0 24px; line-height: 1.55; }
 
-h1 { margin: 0 0 6px; font-size: 1.7em;
-     border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
-h2.phase { font-size: 1.3em; margin-top: 2.4em; color: #1e40af;
-           padding-top: 12px; border-top: 1px solid var(--border); }
-.meta { color: var(--muted); font-size: 0.9em; margin-bottom: 1.8em; }
-code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px;
-       font-family: ui-monospace, SF Mono, Menlo, monospace; font-size: 0.88em; }
-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9em; }
-th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
-th { background: #f3f4f6; font-weight: 600; }
+/* 📋 배경 카드 */
+.bg-card {
+  background: var(--info-bg); border: 1px solid var(--info-border);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+  font-size: 0.92em; scroll-margin-top: 20px;
+}
+.bg-card h3 { font-size: 0.9em; font-weight: 700; color: var(--accent); margin: 0 0 10px; }
+.bg-card ul { margin: 0; padding-left: 22px; color: #1e40af; line-height: 1.7; }
+.bg-card li { margin: 3px 0; }
+.bg-card strong { color: #1e40af; }
+.bg-card code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.bg-card details { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--info-border); }
+.bg-card details summary {
+  font-size: 0.86em; color: var(--accent); cursor: pointer; list-style: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.bg-card details summary::-webkit-details-marker { display: none; }
+.bg-card details summary::before { content: "▶"; font-size: 0.65em; transition: transform 0.15s; }
+.bg-card details[open] summary::before { transform: rotate(90deg); }
+.bg-card details .detail-text { padding: 8px 0 0; color: #1e3a8a; font-size: 0.88em; line-height: 1.6; }
 
-.ack-area { background: var(--rec-bg); border: 1px solid #6ee7b7;
-            border-radius: 8px; padding: 16px 22px; margin-bottom: 22px;
-            font-size: 0.92em; }
-.ack-area h4 { margin: 0 0 8px; color: #065f46; }
-.ack-area p { margin: 4px 0; color: #047857; }
-.ack-area code { background: #d1fae5; color: #065f46; }
+/* 🎯 권장 요약 dashboard */
+.dashboard {
+  background: var(--card); border: 2px solid var(--rec);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;
+  scroll-margin-top: 20px;
+}
+.dashboard h3 { margin: 0 0 4px; font-size: 0.95em; color: var(--rec-dark); font-weight: 600; }
+.dashboard .help { font-size: 0.78em; color: var(--muted); margin: 0 0 12px; }
+.dashboard table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+.dashboard th {
+  font-size: 0.7em; color: var(--muted); text-align: left; padding: 6px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-soft);
+}
+.dashboard td { padding: 9px 6px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+.dashboard tr:last-child td { border-bottom: 0; }
+.dashboard .q-link { color: var(--accent); text-decoration: none; font-weight: 600; }
+.dashboard .q-link:hover { text-decoration: underline; }
+.dashboard .rec-opt { font-weight: 500; color: var(--text); }
+.dashboard .conf {
+  font-family: ui-monospace, monospace; color: var(--rec);
+  letter-spacing: 1px; font-size: 0.82em;
+}
+.dashboard .conf .empty { color: #d1d5db; }
+.dashboard .reason { color: var(--muted); font-size: 0.82em; line-height: 1.4; }
 
-.flow-area { background: var(--card); border: 1px solid var(--border);
-             border-radius: 8px; padding: 20px; margin-bottom: 22px; }
-.flow-area h4 { margin: 0 0 12px; color: #4b5563; font-size: 0.9em;
-                text-transform: uppercase; letter-spacing: 0.04em; }
-.mermaid-wrap { background: var(--bg); padding: 12px; border-radius: 6px; }
+/* Q 카드 */
+.question {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px 26px; margin-bottom: 20px;
+  scroll-margin-top: 20px;
+}
+.question > h2 { margin: 0 0 4px; font-size: 1.1em; font-weight: 600; }
+.question .q-desc { font-size: 0.88em; color: var(--muted); margin: 0 0 14px; }
 
-.section-intro { background: #fef3c7; border-left: 4px solid #f59e0b;
-                 padding: 14px 18px; margin-bottom: 22px; border-radius: 4px;
-                 font-size: 0.94em; }
+/* 🎯 권장 mini-card */
+.q-rec {
+  background: linear-gradient(to right, var(--rec-bg), var(--rec-bg-soft));
+  border: 1.5px solid var(--rec); border-radius: 8px;
+  padding: 12px 16px; margin-bottom: 16px; position: relative;
+}
+.q-rec .label {
+  font-size: 0.7em; color: var(--rec-dark); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.q-rec .conf {
+  position: absolute; top: 12px; right: 16px;
+  font-family: ui-monospace, monospace; color: var(--rec);
+  letter-spacing: 1px; font-size: 0.82em;
+}
+.q-rec .conf .empty { color: #d1d5db; }
+.q-rec .opt { font-size: 1em; font-weight: 600; color: var(--rec-dark); margin: 4px 0 4px; }
+.q-rec .reason { color: #047857; font-size: 0.86em; margin: 0; line-height: 1.5; }
 
-/* B. 권장 dashboard (T2+) — 본문 위 한눈 표 */
-.recommendations-dashboard { background: var(--card); border: 2px solid var(--rec);
-                              border-radius: 10px; padding: 18px 22px;
-                              margin-bottom: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-.recommendations-dashboard h3 { margin: 0 0 4px; color: #065f46; font-size: 1.08em; }
-.recommendations-dashboard .dash-help { margin: 0 0 12px; color: var(--muted);
-                                         font-size: 0.86em; }
-.dash-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-.dash-table th { background: var(--rec-bg); color: #065f46; font-weight: 600;
-                  padding: 8px 10px; text-align: left; font-size: 0.85em;
-                  text-transform: uppercase; letter-spacing: 0.04em; }
-.dash-table td { padding: 9px 10px; border-bottom: 1px solid var(--border);
-                  vertical-align: top; }
-.dash-table tr:last-child td { border-bottom: 0; }
-.dash-table .q-link { color: var(--accent); text-decoration: none;
-                       font-weight: 600; }
-.dash-table .q-link:hover { text-decoration: underline; }
-.dash-table .rec-opt { color: #065f46; font-weight: 500; }
-.dash-table .rec-reason { color: var(--muted); font-size: 0.9em;
-                           font-style: italic; }
+/* 💡 왜 이 결정 필요 */
+.q-why {
+  background: var(--warn-bg); border-left: 4px solid var(--warn);
+  border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 16px;
+  font-size: 0.9em; line-height: 1.6;
+}
+.q-why .why-title { font-weight: 600; color: #92400e; margin: 0 0 6px; font-size: 0.94em; }
+.q-why p { margin: 4px 0; color: #78350f; }
+.q-why code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.q-why strong { color: #78350f; }
 
-/* E. confidence indicator — ●●●●○ 5점 */
-.confidence { display: inline-block; letter-spacing: 1px;
-              font-family: ui-monospace, monospace; }
-.confidence .filled { color: var(--rec); }
-.confidence .empty { color: #d1d5db; }
-.confidence-label { font-size: 0.78em; color: var(--muted);
-                     margin-left: 4px; }
+/* 옵션 비교 표 */
+.options-table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; font-size: 0.88em; }
+.options-table th {
+  font-size: 0.7em; color: var(--muted); text-align: left; padding: 8px 6px;
+  border-bottom: 1px solid var(--border); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.options-table td {
+  padding: 11px 6px; border-bottom: 1px solid var(--border-soft); vertical-align: middle;
+}
+.options-table tr:last-child td { border-bottom: 0; }
+.options-table tr.rec td { background: var(--rec-bg-soft); }
+.options-table .star { width: 22px; text-align: center; color: var(--rec); }
+.options-table .opt-name { font-weight: 500; }
+.options-table .level {
+  display: inline-block; font-weight: 600; width: 38px; text-align: center;
+  font-size: 0.85em; padding: 2px 6px; border-radius: 4px;
+}
+.level.low { color: var(--low); background: var(--low-bg); }
+.level.mid { color: var(--mid); background: var(--mid-bg); }
+.level.high { color: var(--high); background: var(--high-bg); }
+.options-table .conf {
+  font-family: ui-monospace, monospace; color: var(--rec);
+  letter-spacing: 1px; font-size: 0.82em;
+}
+.options-table .conf .empty { color: #d1d5db; }
+.options-table .status { font-size: 0.86em; white-space: nowrap; }
+.status.ok { color: var(--low); font-weight: 600; }
+.status.warn { color: var(--high); font-weight: 600; }
+.status.bndry { color: var(--mid); font-weight: 600; }
 
-/* A. 옵션 비교 matrix (T2+) — 각 Q 안 첫머리 */
-.option-matrix { width: 100%; border-collapse: collapse; margin: 14px 0 18px;
-                  font-size: 0.86em; background: #f9fafb;
-                  border: 1px solid var(--border); border-radius: 6px;
-                  overflow: hidden; }
-.option-matrix th { background: #f3f4f6; color: #4b5563; padding: 8px 10px;
-                     text-align: left; font-weight: 600; font-size: 0.82em;
-                     text-transform: uppercase; letter-spacing: 0.04em;
-                     border-bottom: 1px solid var(--border); }
-.option-matrix td { padding: 8px 10px; border-bottom: 1px solid var(--border);
-                     vertical-align: top; }
-.option-matrix tr:last-child td { border-bottom: 0; }
-.option-matrix .rec-row { background: var(--rec-bg); }
-.option-matrix .opt-name { font-weight: 500; color: var(--text); }
-.option-matrix .axis-cell { text-align: center; font-family: ui-monospace, monospace;
-                             font-size: 0.85em; }
-.option-matrix .axis-高 { color: #991b1b; font-weight: 600; }
-.option-matrix .axis-중 { color: #ca8a04; font-weight: 600; }
-.option-matrix .axis-中 { color: #ca8a04; font-weight: 600; }
-.option-matrix .axis-저 { color: #065f46; font-weight: 600; }
-.option-matrix .axis-低 { color: #065f46; font-weight: 600; }
+/* 옵션 detail 카드 */
+.option-details { margin-bottom: 12px; }
+.option-details > summary {
+  color: var(--accent); font-size: 0.86em; cursor: pointer; padding: 8px 0;
+  list-style: none; user-select: none; display: inline-flex; align-items: center; gap: 6px;
+}
+.option-details > summary::-webkit-details-marker { display: none; }
+.option-details > summary::before { content: "▶"; font-size: 0.65em; transition: transform 0.15s; }
+.option-details[open] > summary::before { transform: rotate(90deg); }
+.option-details summary:hover { text-decoration: underline; }
+.option-details .detail-body { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 8px 0 0; }
+@media (min-width: 900px) { .option-details .detail-body { grid-template-columns: 1fr 1fr; } }
+.opt-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; font-size: 0.86em;
+}
+.opt-card.rec { border-color: var(--rec); background: var(--rec-bg); }
+.opt-card .opt-card-head {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;
+}
+.opt-card h4 { margin: 0; font-size: 0.94em; font-weight: 600; }
+.opt-card .opt-conf {
+  font-family: ui-monospace, monospace; color: var(--rec);
+  letter-spacing: 1px; font-size: 0.78em;
+}
+.opt-card .opt-conf .empty { color: #d1d5db; }
+.opt-card .row {
+  margin: 6px 0; display: flex; align-items: flex-start; gap: 8px;
+  font-size: 0.86em; line-height: 1.5;
+}
+.opt-card .row-icon { flex-shrink: 0; margin-top: 1px; }
+.opt-card .row.pros .row-text strong { color: var(--low); }
+.opt-card .row.cons .row-text strong { color: var(--high); }
+.opt-card .row.example .row-text { color: var(--muted); font-style: italic; }
+.opt-card code {
+  background: var(--border-soft); padding: 1px 4px; border-radius: 3px;
+  font-size: 0.92em; font-style: normal;
+}
 
-/* F. radar chart (T3) — 옵션 비교 visual */
-.radar-wrap { background: var(--card); border: 1px solid var(--border);
-              border-radius: 6px; padding: 14px; margin: 0 0 18px;
-              max-width: 480px; }
-.radar-wrap h5 { margin: 0 0 8px; color: #4b5563; font-size: 0.85em;
-                  text-transform: uppercase; letter-spacing: 0.04em; }
-.radar-canvas { width: 100% !important; height: 280px !important; }
+/* 영향 영역 */
+.q-impact { margin-bottom: 12px; }
+.q-impact > summary {
+  color: var(--muted); font-size: 0.84em; cursor: pointer; padding: 6px 0;
+  list-style: none; display: inline-flex; align-items: center; gap: 6px;
+}
+.q-impact > summary::-webkit-details-marker { display: none; }
+.q-impact > summary::before { content: "▶"; font-size: 0.65em; transition: transform 0.15s; }
+.q-impact[open] > summary::before { transform: rotate(90deg); }
+.q-impact .impact-body {
+  background: var(--info-bg); border-left: 3px solid var(--accent);
+  padding: 10px 14px; border-radius: 0 4px 4px 0; font-size: 0.84em; color: #1e40af;
+}
+.q-impact .impact-body ul { margin: 0; padding-left: 22px; }
+.q-impact .impact-body li { margin: 2px 0; }
+.q-impact .impact-body code { background: white; padding: 1px 5px; border-radius: 3px; }
+.q-impact .impact-mermaid { background: white; padding: 10px; border-radius: 4px; margin-top: 6px; }
 
-/* D. 영향 영역 (T3) — Mermaid 또는 list */
-.impact-area { background: #eff6ff; border-left: 4px solid var(--accent);
-                border-radius: 4px; padding: 12px 16px; margin: 0 0 14px;
-                font-size: 0.88em; }
-.impact-area h5 { margin: 0 0 8px; color: #1e40af; font-size: 0.85em;
-                   text-transform: uppercase; letter-spacing: 0.04em; }
-.impact-area ul { margin: 0; padding-left: 20px; color: #1e40af; }
-.impact-area .impact-mermaid { background: white; padding: 10px;
-                                border-radius: 4px; margin-top: 6px; }
+/* 선택 영역 */
+.q-select { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.q-select h3 {
+  margin: 0 0 8px; font-size: 0.72em; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.q-select label {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  margin: 1px 0; cursor: pointer; border-radius: 6px; font-size: 0.9em;
+}
+.q-select label:hover { background: var(--border-soft); }
+.q-select label.rec { background: var(--rec-bg-soft); font-weight: 500; }
+.q-select label.rec::after { content: " ★"; color: var(--rec); font-weight: 700; }
+.q-select label input { margin: 0; }
+.q-select .other-input {
+  width: 100%; margin-top: 6px; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: 5px;
+  font-family: inherit; font-size: 0.86em; resize: vertical;
+  min-height: 44px; display: none;
+}
+.q-select .other-input.visible { display: block; }
+.q-select .comment-input {
+  width: 100%; margin-top: 8px; padding: 7px 10px;
+  border: 1px solid var(--border-soft); border-radius: 5px;
+  font-family: inherit; font-size: 0.84em; resize: vertical;
+  min-height: 38px; background: #fafafa; display: none;
+}
+.q-select .comment-input.visible { display: block; }
 
-.question { background: var(--card); border: 1px solid var(--border);
-            border-radius: 8px; padding: 20px 24px; margin-bottom: 18px;
-            position: relative; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-            scroll-margin-top: 20px; }
-.q-title { margin: 0 0 4px; font-size: 1.08em; font-weight: 600;
-           color: #111827; padding-right: 110px; }
-.q-desc { margin: 0 0 6px; color: var(--muted); font-size: 0.92em; }
-.q-context { margin: 0 0 14px; padding: 8px 12px; background: #f9fafb;
-             border-left: 3px solid #d1d5db; border-radius: 3px;
-             color: #4b5563; font-size: 0.9em; }
+/* submit */
+.submit-area {
+  background: var(--card); border: 1.5px solid var(--accent);
+  border-radius: 12px; padding: 22px 24px; margin-top: 28px;
+  scroll-margin-top: 20px;
+}
+.submit-area h3 {
+  margin: 0 0 12px; font-size: 0.86em; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions button {
+  padding: 10px 18px; border: 1px solid var(--accent); border-radius: 6px;
+  font-size: 0.9em; font-weight: 500; cursor: pointer;
+  background: white; color: var(--accent);
+}
+.actions button:hover { background: var(--info-bg); }
+.actions button.action { background: var(--rec); color: white; border-color: var(--rec); }
+.actions button.action:hover { background: #059669; }
+.actions button.reset {
+  background: white; color: var(--muted); border-color: var(--border); margin-left: auto;
+}
+.actions button.reset:hover { background: var(--border-soft); }
+.actions button:disabled {
+  background: var(--border-soft); color: var(--muted);
+  border-color: var(--border); cursor: not-allowed;
+}
+.actions button:disabled:hover { background: var(--border-soft); }
 
-.option { display: flex; align-items: flex-start; gap: 8px;
-          padding: 10px 14px; margin: 6px 0; border-radius: 6px;
-          border: 1px solid transparent; cursor: pointer; flex-wrap: wrap;
-          transition: background 0.1s, border-color 0.1s; }
-.option:hover { background: #f3f4f6; border-color: var(--border); }
-.option input { margin-top: 4px; flex-shrink: 0; }
-.opt-label { font-weight: 500; flex: 1; }
-.opt-reason { width: 100%; padding-left: 24px; color: var(--muted);
-              font-size: 0.88em; margin-top: 4px; }
-.recommended { background: var(--rec-bg); border-color: #6ee7b7; }
-.recommended:hover { border-color: var(--rec); }
-.recommended-tag { display: inline-block; background: var(--rec); color: white;
-                   padding: 2px 9px; border-radius: 10px; font-size: 0.72em;
-                   margin-left: 8px; font-weight: 500; vertical-align: middle; }
+#output {
+  margin-top: 14px; background: #1f2937; color: #f9fafb; padding: 14px;
+  border-radius: 6px; font-family: ui-monospace, monospace; font-size: 0.82em;
+  line-height: 1.5; white-space: pre-wrap; max-height: 300px; overflow: auto; display: none;
+}
+#output.visible { display: block; }
 
-.option-detail { width: 100%; margin: 8px 0 0 28px; }
-.option-detail summary { color: var(--accent); font-size: 0.85em;
-                          margin-bottom: 4px; }
-.option-detail summary:hover { text-decoration: underline; }
-.option-detail .detail-body { margin: 6px 0 0 0; padding: 10px 14px;
-                               background: #f9fafb; border: 1px solid var(--border);
-                               border-radius: 5px; font-size: 0.88em; }
-.option-detail .detail-body h5 { margin: 0 0 6px; font-size: 0.95em;
-                                  color: #1e40af; }
-.option-detail .detail-body p { margin: 6px 0; }
-.option-detail .pros { color: #065f46; }
-.option-detail .cons { color: #991b1b; }
-.option-detail .example { color: var(--muted); font-style: italic; }
-.option-detail code { background: #e0e7ff; color: #1e40af;
-                      padding: 1px 5px; border-radius: 3px; }
+/* empty state (N=0 시 등) */
+.empty-state {
+  padding: 24px; text-align: center; color: var(--muted);
+  font-size: 0.9em; line-height: 1.6;
+}
+.empty-state .emoji { font-size: 1.6em; display: block; margin-bottom: 6px; }
 
-.toggle-all-details { position: absolute; top: 14px; right: 18px;
-                      background: transparent; border: 1px solid #d1d5db;
-                      color: #4b5563; padding: 4px 10px; font-size: 0.76em;
-                      border-radius: 4px; cursor: pointer; font-weight: 500;
-                      margin: 0; }
-.toggle-all-details:hover { background: #f3f4f6; color: var(--text);
-                            border-color: #9ca3af; }
-.toggle-all-details.all-open { background: var(--rec-bg); color: #065f46;
-                                border-color: #6ee7b7; }
-
-textarea.other-input { width: 100%; min-height: 60px; padding: 8px 12px;
-                       border: 1px solid #d1d5db; border-radius: 4px;
-                       font-family: inherit; font-size: 0.95em;
-                       resize: vertical; margin-top: 6px; }
-textarea.other-input:focus { outline: none; border-color: var(--accent);
-                             box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-
-.comment-wrap { display: none; margin-top: 10px; padding-top: 8px;
-                border-top: 1px dashed var(--border); }
-.comment-wrap.visible { display: block; }
-.comment-label { font-size: 0.82em; color: var(--muted); margin-bottom: 4px;
-                 display: block; }
-textarea.comment-input { width: 100%; min-height: 48px; padding: 7px 11px;
-                         border: 1px solid #d1d5db; border-radius: 4px;
-                         font-family: inherit; font-size: 0.9em;
-                         resize: vertical; background: #fafbfc; }
-textarea.comment-input:focus { outline: none; border-color: var(--rec);
-                               box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
-                               background: white; }
-
-details summary { cursor: pointer; list-style: none; display: inline-flex;
-                  align-items: center; gap: 6px; user-select: none; }
-details summary::-webkit-details-marker { display: none; }
-details summary::before { content: "▶"; display: inline-block;
-                          font-size: 0.7em; transition: transform 0.15s; }
-details[open] summary::before { transform: rotate(90deg); }
-
-.preview-panel { margin-top: 14px; padding: 14px 18px; background: #eff6ff;
-                 border-left: 4px solid var(--accent); border-radius: 4px;
-                 font-size: 0.9em; }
-.preview-panel h5 { margin: 0 0 8px; color: #1e40af; }
-.preview-panel .empty { color: var(--muted); font-style: italic; }
-.preview-panel table { width: 100%; border-collapse: collapse; background: white;
-                       font-size: 0.88em; }
-.preview-panel th, .preview-panel td { padding: 6px 10px;
-                                        border-bottom: 1px solid #dbeafe;
-                                        text-align: left; }
-.preview-panel th { background: #dbeafe; font-weight: 600; color: #1e40af; }
-
-.output-section { margin-top: 2.5em; padding: 24px; background: var(--card);
-                  border: 2px solid var(--accent); border-radius: 10px; }
-.output-section h3 { margin-top: 0; color: #1e40af; }
-.output-section .submit-help { color: var(--muted); margin: 0 0 14px;
-                                font-size: 0.93em; }
-.output-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
-                  align-items: center; }
-.button-divider { width: 1px; height: 28px; background: var(--border);
-                  margin: 0 4px; }
-button { padding: 10px 20px; background: var(--accent); color: white;
-         border: none; border-radius: 5px; font-size: 0.95em; cursor: pointer;
-         font-weight: 500; transition: background 0.15s; }
-button:hover { background: #1d4ed8; }
-button.gen { background: white; color: var(--accent);
-             border: 1px solid var(--accent); }
-button.gen:hover { background: #eff6ff; }
-button.gen.active { background: var(--accent); color: white; }
-button.action { background: var(--rec); }
-button.action:hover { background: #059669; }
-button.reset { background: #6b7280; padding: 10px 16px; }
-button.reset:hover { background: #4b5563; }
-
-.output-wrap { position: relative; margin-top: 6px; }
-#output { background: #1f2937; color: #f9fafb; padding: 16px;
-          border-radius: 6px; white-space: pre-wrap; font-size: 0.85em;
-          font-family: ui-monospace, "SF Mono", Menlo, monospace;
-          line-height: 1.5; max-height: 500px; overflow: auto; margin: 0; }
-.hover-copy { position: absolute; top: 8px; right: 8px; opacity: 0;
-              transition: opacity 0.2s; background: rgba(255,255,255,0.12);
-              color: white; border: 1px solid rgba(255,255,255,0.3);
-              padding: 4px 10px; font-size: 0.85em; border-radius: 4px;
-              cursor: pointer; font-weight: 500; }
-.output-wrap:hover .hover-copy { opacity: 1; }
-.hover-copy:hover { background: rgba(255,255,255,0.25); }
-
-.toast { position: fixed; bottom: 20px; right: 20px; background: var(--rec);
-         color: white; padding: 12px 20px; border-radius: 6px;
-         font-size: 0.9em; font-weight: 500; opacity: 0;
-         transition: opacity 0.3s; pointer-events: none;
-         box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--rec);
+  color: white; padding: 10px 18px; border-radius: 6px; font-size: 0.86em;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999;
+}
 .toast.show { opacity: 1; }
 
 @media (max-width: 900px) {
-  body.with-sidebar { flex-direction: column; }
-  body.with-sidebar .sidebar { position: relative; width: 100%; height: auto;
-             border-right: 0; border-bottom: 1px solid var(--border); }
-  body.with-sidebar .main { max-width: 100%; padding: 24px; }
-  .q-title { padding-right: 0; }
-  .toggle-all-details { position: relative; top: auto; right: auto;
-                        display: inline-block; margin-bottom: 8px; }
+  body { flex-direction: column; }
+  .sidebar {
+    position: relative; width: 100%; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--border);
+  }
+  .main { padding: 24px; max-width: 100%; }
 }
   </style>
 </head>
-<body class="{{LAYOUT_CLASS}}">
+<body>
 
-{{SIDEBAR_BLOCK}}
+<aside class="sidebar">
+  <p class="sidebar-title">진행</p>
+  <div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+  <p class="progress-text" id="prog-text">0/{{TOTAL_Q}}</p>
+
+  <p class="sidebar-title">목차</p>
+  <ul class="nav-list">
+{{SIDEBAR_NAV}}
+  </ul>
+</aside>
 
 <main class="main">
 
 <header>
   <h1>{{H1}}</h1>
-  <div class="meta">{{META}}</div>
+  <p class="meta">{{META}}</p>
 </header>
 
-{{ACK_SECTION}}
-{{FLOW_SECTION}}
-{{RECOMMENDATIONS_DASHBOARD}}
-{{SECTION_INTRO}}
+{{BG_CARD}}
+
+{{DASHBOARD}}
 
 {{QUESTIONS_BLOCK}}
 
-<section class="output-section" id="submit">
-  <h3>📋 결정 결과 → format 선택 → 복사</h3>
-  <p class="submit-help">[생성] 클릭 → 결과 확인 → [복사] 클릭 → Claude 에 붙여넣기.</p>
-  <div class="output-buttons">
-{{OUTPUT_BUTTONS}}
-    <span class="button-divider"></span>
-    <button class="action" onclick="copyOutput()">📋 복사</button>
-    <span class="button-divider"></span>
-    <button class="reset" onclick="resetAnswers()">🔄 초기화</button>
+<section class="submit-area" id="submit">
+  <h3>✏️ 결과 추출</h3>
+  <div class="actions">
+    <button onclick="generate()" id="btn-gen">📄 결과 생성</button>
+    <button class="action" onclick="copyOutput()" id="btn-copy">📋 복사</button>
+    <button class="reset" onclick="resetForm()">🔄 초기화</button>
   </div>
-  <div class="output-wrap">
-    <button class="hover-copy" onclick="copyOutput()" title="복사">📋 복사</button>
-    <pre id="output">format 생성 후 표시</pre>
-  </div>
+  <pre id="output"></pre>
 </section>
 
-<div class="toast" id="toast">✅ 복사 완료</div>
+<div class="toast" id="toast"></div>
 
 </main>
 
@@ -330,215 +366,61 @@ button.reset:hover { background: #4b5563; }
 const SOURCE_HTML = "{{SOURCE_HTML}}";
 const TOPIC = "{{TOPIC}}";
 const DATE = "{{DATE}}";
-const STORAGE_KEY = `html-decision:${SOURCE_HTML}`;
 const TOTAL_Q = {{TOTAL_Q}};
-const USE_LOCALSTORAGE = {{USE_LOCALSTORAGE}};
 
-{{PREVIEW_DATA_JS}}
-
-if (typeof mermaid !== 'undefined') {
-  try { mermaid.initialize({ startOnLoad: true, theme: 'default' }); }
-  catch (e) { console.error('mermaid init failed', e); }
+// N=0 시 버튼 disable
+if (TOTAL_Q === 0) {
+  document.getElementById('btn-gen').disabled = true;
+  document.getElementById('btn-copy').disabled = true;
 }
 
-document.querySelectorAll('textarea.other-input').forEach(input => {
-  input.addEventListener('input', () => {
-    const qId = input.getAttribute('data-for');
-    const otherRadio = document.querySelector(`input[name="${qId}"][value="other"]`);
-    if (otherRadio) otherRadio.checked = true;
-    updateCommentVisibility(qId);
+document.querySelectorAll('input[type="radio"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const qid = r.name;
+    const ta = document.querySelector(`textarea.other-input[data-for="${qid}"]`);
+    const ci = document.querySelector(`textarea.comment-input[data-for="${qid}"]`);
+    if (ta) {
+      if (r.value === 'other' && r.checked) ta.classList.add('visible');
+      else ta.classList.remove('visible');
+    }
+    if (ci) {
+      if (r.checked && r.value !== 'other') ci.classList.add('visible');
+      else if (r.checked && r.value === 'other') ci.classList.remove('visible');
+    }
+    updateProgress();
+  });
+});
+document.querySelectorAll('textarea.other-input').forEach(ta => {
+  ta.addEventListener('input', () => {
+    const qid = ta.dataset.for;
+    const otherRadio = document.querySelector(`input[name="${qid}"][value="other"]`);
+    if (ta.value.trim()) {
+      otherRadio.checked = true;
+      ta.classList.add('visible');
+    }
+    updateProgress();
   });
 });
 
-function updateCommentVisibility(qId) {
-  const wrap = document.querySelector(`.comment-wrap[data-for-comment="${qId}"]`);
-  if (!wrap) return;
-  const checkedNonOther = Array.from(
-    document.querySelectorAll(`input[name="${qId}"]:checked`)
-  ).filter(i => i.value !== 'other');
-  if (checkedNonOther.length > 0) {
-    wrap.classList.add('visible');
-  } else {
-    wrap.classList.remove('visible');
-    const t = wrap.querySelector('textarea.comment-input');
-    if (t) t.value = '';
-  }
-}
-
-document.querySelectorAll('input[type="radio"], input[type="checkbox"]')
-  .forEach(i => i.addEventListener('change', () => updateCommentVisibility(i.name)));
-
-function collectAnswers() {
-  const answers = {};
-  document.querySelectorAll('.question').forEach(q => {
-    const qid = q.dataset.qid;
-    const title = q.querySelector('.q-title').textContent;
-    const checked = Array.from(q.querySelectorAll('input:checked'));
-    const otherText = (q.querySelector('textarea.other-input')?.value || '').trim();
-    const commentText = getComment(qid);
-    let value = null;
-    let isOther = false;
-    if (checked.length > 0) {
-      const vals = checked.map(c => {
-        if (c.value === 'other') {
-          isOther = true;
-          return otherText ? `기타: ${otherText}` : '기타';
-        }
-        return c.parentElement.querySelector('.opt-label')?.textContent.trim() || c.value;
-      });
-      value = checked[0].type === 'checkbox' ? vals : vals[0];
+// scroll spy — 모든 section
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.nav-list a').forEach(a => a.classList.remove('active'));
+      const id = e.target.id;
+      const navA = document.querySelector(`.nav-list a[href="#${id}"]`);
+      if (navA) navA.classList.add('active');
     }
-    answers[qid] = { title, value, isOther,
-                     comment: isOther ? '' : commentText,
-                     type: checked[0]?.type || 'radio' };
   });
-  return answers;
-}
-
-function getComment(qid) {
-  const wrap = document.querySelector(`.comment-wrap[data-for-comment="${qid}"]`);
-  if (!wrap || !wrap.classList.contains('visible')) return '';
-  return (wrap.querySelector('textarea.comment-input')?.value || '').trim();
-}
-
-function generate(format) {
-  const answers = collectAnswers();
-  let text = '';
-  if (format === 'md') text = toMarkdown(answers);
-  else if (format === 'json') text = toJSON(answers);
-  else if (format === 'prompt') text = toPrompt(answers);
-  document.getElementById('output').textContent = text;
-  document.querySelectorAll('.output-buttons button.gen').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + format)?.classList.add('active');
-}
-
-function toMarkdown(answers) {
-  let md = `<!-- html-decision-result -->\n# ${TOPIC} — 결정 결과\n\n`;
-  md += `**출처 HTML**: \`${SOURCE_HTML}\`\n`;
-  md += `**날짜**: ${DATE}\n\n---\n\n`;
-  for (const [qid, a] of Object.entries(answers)) {
-    md += `### ${a.title}\n`;
-    if (Array.isArray(a.value)) {
-      md += `**답**:\n${a.value.map(v => `- ${v}`).join('\n')}\n`;
-    } else {
-      md += `- **답**: ${a.value || '(미선택)'}\n`;
-    }
-    if (a.comment && !a.isOther) {
-      md += `- **코멘트**:\n${a.comment.split('\n').map(l => `  ${l}`).join('\n')}\n`;
-    }
-    md += '\n';
-  }
-  return md;
-}
-
-function toJSON(answers) {
-  const decisions = {};
-  for (const [qid, a] of Object.entries(answers)) {
-    const d = { type: a.type };
-    if (Array.isArray(a.value)) d.values = a.value;
-    else d.value = a.value;
-    if (a.comment && !a.isOther) d.comment = a.comment;
-    if (a.isOther) d.is_other = true;
-    decisions[qid] = d;
-  }
-  return JSON.stringify({
-    topic: TOPIC, source_html: SOURCE_HTML, date: DATE, decisions
-  }, null, 2);
-}
-
-function toPrompt(answers) {
-  let p = `이전 HTML 결정 캔버스 (\`${SOURCE_HTML}\`) 결과를 정리한 내용입니다.\n\n`;
-  p += `주제: ${TOPIC}\n날짜: ${DATE}\n\n결정 사항:\n\n`;
-  for (const a of Object.values(answers)) {
-    p += `${a.title}\n`;
-    if (Array.isArray(a.value)) {
-      p += `→ ${a.value.join(', ')}\n`;
-    } else {
-      p += `→ ${a.value || '(미선택)'}\n`;
-    }
-    if (a.comment && !a.isOther) {
-      p += `  부연: ${a.comment.replace(/\n/g, ' ')}\n`;
-    }
-    p += '\n';
-  }
-  p += '이 결정들을 기반으로 다음을 도와주세요: [사용자가 채울 영역]\n';
-  return p;
-}
-
-function copyOutput() {
-  const text = document.getElementById('output').textContent;
-  if (!text || text === 'format 생성 후 표시' || text === '답안 초기화됨') {
-    showToast('⚠️ 먼저 [생성] 클릭');
-    return;
-  }
-  navigator.clipboard?.writeText(text).then(
-    () => showToast('✅ 복사 완료'),
-    () => fallbackCopy(text)
-  );
-}
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text; document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); showToast('✅ 복사 완료'); }
-  catch { showToast('❌ 복사 실패'); }
-  document.body.removeChild(ta);
-}
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 1800);
-}
-function resetAnswers() {
-  if (!confirm('모든 답안을 초기화할까요?')) return;
-  document.querySelectorAll('input[type="radio"], input[type="checkbox"]')
-    .forEach(i => i.checked = false);
-  document.querySelectorAll('textarea').forEach(t => t.value = '');
-  document.querySelectorAll('.comment-wrap.visible')
-    .forEach(w => w.classList.remove('visible'));
-  document.getElementById('output').textContent = '답안 초기화됨';
-  if (USE_LOCALSTORAGE) localStorage.removeItem(STORAGE_KEY);
-  updateProgress();
-  if (typeof updateAllPreviews === 'function') updateAllPreviews();
-  showToast('🔄 초기화 완료');
-}
-
-// toggle-all-details auto-inject
-window.addEventListener('load', () => {
-  document.querySelectorAll('.question').forEach(q => {
-    if (q.querySelectorAll('details').length === 0) return;
-    const btn = document.createElement('button');
-    btn.className = 'toggle-all-details';
-    btn.textContent = '모두 펴기';
-    btn.type = 'button';
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      const list = q.querySelectorAll('details');
-      const allOpen = Array.from(list).every(d => d.open);
-      list.forEach(d => { d.open = !allOpen; });
-      btn.textContent = allOpen ? '모두 펴기' : '모두 접기';
-      btn.classList.toggle('all-open', !allOpen);
-    };
-    q.appendChild(btn);
-  });
-});
-
-// scroll spy (sidebar 박제 시)
-if (document.querySelector('.sidebar')) {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        document.querySelectorAll('.nav-q').forEach(a => a.classList.remove('active'));
-        const navQ = document.querySelector(`.nav-q[data-q="${e.target.dataset.qid}"]`);
-        if (navQ) navQ.classList.add('active');
-      }
-    });
-  }, { threshold: 0.4, rootMargin: '-100px 0px -50% 0px' });
-  document.querySelectorAll('.question').forEach(q => observer.observe(q));
-}
+}, { rootMargin: '-30% 0px -60% 0px' });
+document.querySelectorAll('section').forEach(s => observer.observe(s));
 
 function updateProgress() {
+  if (TOTAL_Q === 0) {
+    document.getElementById('prog-bar').style.width = '0%';
+    document.getElementById('prog-text').textContent = '0/0';
+    return;
+  }
   let answered = 0;
   document.querySelectorAll('.question').forEach(q => {
     const qid = q.dataset.qid;
@@ -546,131 +428,72 @@ function updateProgress() {
     const otherText = (q.querySelector('textarea.other-input')?.value || '').trim();
     const ok = checked && (checked.value !== 'other' || otherText.length > 0);
     if (ok) answered++;
-    const navQ = document.querySelector(`.nav-q[data-q="${qid}"]`);
-    if (navQ) navQ.classList.toggle('answered', ok);
+    const navA = document.querySelector(`.nav-list a[data-q="${qid}"]`);
+    if (navA) navA.classList.toggle('answered', ok);
   });
-  const pct = TOTAL_Q > 0 ? Math.round(answered / TOTAL_Q * 100) : 0;
-  const bar = document.getElementById('prog-bar');
-  const txt = document.getElementById('prog-text');
-  if (bar) bar.style.width = pct + '%';
-  if (txt) txt.textContent = `${answered}/${TOTAL_Q} 답함 (${pct}%)`;
+  const pct = Math.round(answered / TOTAL_Q * 100);
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `${answered}/${TOTAL_Q} 답함 (${pct}%)`;
 }
-document.addEventListener('change', updateProgress);
-document.addEventListener('input', updateProgress);
+
+function generate() {
+  let md = `<!-- html-decision-result -->\n# ${TOPIC} — 결정 결과\n\n`;
+  md += `**출처 HTML**: \`${SOURCE_HTML}\`\n**날짜**: ${DATE}\n\n---\n\n`;
+  let count = 0;
+  document.querySelectorAll('.question').forEach(q => {
+    const checked = q.querySelector('input:checked');
+    if (!checked) return;
+    const title = q.querySelector('h2').textContent;
+    let answer;
+    if (checked.value === 'other') {
+      const ta = q.querySelector('textarea.other-input');
+      answer = '기타: ' + (ta.value.trim() || '(미입력)');
+    } else {
+      answer = checked.parentElement.textContent.trim().replace(/\s+/g, ' ').replace(/\s*★\s*$/, '');
+    }
+    const comment = q.querySelector('textarea.comment-input')?.value.trim() || '';
+    md += `### ${title}\n- **답**: ${answer}\n`;
+    if (comment && checked.value !== 'other') {
+      md += `- **코멘트**:\n${comment.split('\n').map(l => `  ${l}`).join('\n')}\n`;
+    }
+    md += '\n';
+    count++;
+  });
+  if (count === 0) { showToast('⚠️ 옵션 선택 후 생성'); return; }
+  const out = document.getElementById('output');
+  out.textContent = md;
+  out.classList.add('visible');
+}
+
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  if (!text) { showToast('⚠️ 먼저 생성'); return; }
+  navigator.clipboard?.writeText(text).then(() => showToast('✅ 복사 완료'));
+}
+
+function resetForm() {
+  document.querySelectorAll('input[type="radio"]').forEach(i => i.checked = false);
+  document.querySelectorAll('textarea').forEach(t => { t.value = ''; t.classList.remove('visible'); });
+  const out = document.getElementById('output');
+  out.textContent = '';
+  out.classList.remove('visible');
+  updateProgress();
+  showToast('🔄 초기화');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+if (typeof mermaid !== 'undefined') {
+  try { mermaid.initialize({ startOnLoad: true, theme: 'default' }); }
+  catch (e) { console.error('mermaid init failed', e); }
+}
+
 window.addEventListener('load', updateProgress);
-
-// localStorage (T3 + N≥5 시 활성)
-if (USE_LOCALSTORAGE) {
-  function saveState() {
-    const state = {};
-    document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked')
-      .forEach(i => state[`${i.name}:${i.value}`] = true);
-    document.querySelectorAll('textarea').forEach(t => {
-      const key = t.dataset.for || t.closest('.comment-wrap')?.dataset.forComment;
-      if (key && t.value) state[`text:${key}:${t.classList.contains('comment-input') ? 'c' : 'o'}`] = t.value;
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-  function loadState() {
-    try {
-      const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      Object.entries(state).forEach(([key, val]) => {
-        if (key.startsWith('text:')) {
-          const [, id, kind] = key.split(':');
-          const sel = kind === 'c'
-            ? `.comment-wrap[data-for-comment="${id}"] textarea`
-            : `textarea[data-for="${id}"]`;
-          const t = document.querySelector(sel);
-          if (t) t.value = val;
-        } else {
-          const [name, value] = key.split(':');
-          const i = document.querySelector(`input[name="${name}"][value="${value}"]`);
-          if (i) { i.checked = true; updateCommentVisibility(name); }
-        }
-      });
-      updateProgress();
-      if (typeof updateAllPreviews === 'function') updateAllPreviews();
-    } catch {}
-  }
-  window.addEventListener('load', loadState);
-  document.addEventListener('change', saveState);
-  document.addEventListener('input', saveState);
-}
-
-// preview-panel (옵션 박제된 question 만 활성)
-function updateAllPreviews() {
-  document.querySelectorAll('.preview-panel[data-for-preview]').forEach(p => {
-    const qid = p.dataset.forPreview;
-    updatePreviewFor(qid);
-  });
-}
-function updatePreviewFor(qid) {
-  const panel = document.querySelector(`.preview-panel[data-for-preview="${qid}"] .preview-content`);
-  if (!panel) return;
-  const sel = document.querySelector(`input[name="${qid}"]:checked`);
-  const previewData = window.PREVIEW_DATA?.[qid];
-  if (!previewData) return;
-  if (!sel || sel.value === 'other') {
-    panel.innerHTML = '<p class="empty">옵션 선택 시 영향 영역 view</p>';
-    return;
-  }
-  const data = previewData[sel.value];
-  if (!data) { panel.innerHTML = '<p class="empty">preview 없음</p>'; return; }
-  let html = '<strong>' + data.title + '</strong><table>';
-  data.rows.forEach(r => { html += '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>'; });
-  html += '</table>';
-  panel.innerHTML = html;
-}
-document.querySelectorAll('.preview-panel[data-for-preview]').forEach(p => {
-  const qid = p.dataset.forPreview;
-  document.querySelectorAll(`input[name="${qid}"]`)
-    .forEach(i => i.addEventListener('change', () => updatePreviewFor(qid)));
-});
-window.addEventListener('load', updateAllPreviews);
-
-// F. radar chart 초기화 (T3 — 옵션 별 axes 비교)
-// NOTE: RADAR_DATA 는 head 영역 JS data 박제 영역에서 const 로 선언됨 (render.py 가 박제).
-// 여기서 재선언 시 SyntaxError — 단순 함수 정의만.
-function initRadarCharts() {
-  if (typeof Chart === 'undefined') return;
-  Object.entries(RADAR_DATA).forEach(([qid, data]) => {
-    const canvas = document.querySelector(`canvas.radar-canvas[data-qid="${qid}"]`);
-    if (!canvas) return;
-    try {
-      new Chart(canvas, {
-        type: 'radar',
-        data: {
-          labels: data.axes,
-          datasets: data.options.map((o, i) => ({
-            label: o.label,
-            data: o.values,
-            backgroundColor: o.recommended
-              ? 'rgba(16,185,129,0.18)'
-              : `rgba(${[37,156,202,190,71][i%5]},99,${[235,150,180,100,200][i%5]},0.10)`,
-            borderColor: o.recommended ? 'rgb(16,185,129)' : `rgba(${[37,156,202,190,71][i%5]},99,${[235,150,180,100,200][i%5]},0.7)`,
-            borderWidth: o.recommended ? 2 : 1,
-            pointRadius: 3,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } },
-          scales: { r: { suggestedMin: 0, suggestedMax: 5, ticks: { stepSize: 1, font: { size: 9 } }, pointLabels: { font: { size: 10 } } } }
-        }
-      });
-    } catch (e) { console.error('radar chart init failed for', qid, e); }
-  });
-}
-window.addEventListener('load', initRadarCharts);
-
-// D. impact-area Mermaid 재초기화 (delayed mermaid re-render — 영향 mermaid 박제 시)
-window.addEventListener('load', () => {
-  if (typeof mermaid !== 'undefined' && document.querySelector('.impact-mermaid .mermaid')) {
-    try { mermaid.run({ nodes: document.querySelectorAll('.impact-mermaid .mermaid') }); }
-    catch (e) { /* mermaid v10 auto-init covers most cases */ }
-  }
-});
 </script>
 
 </body>
