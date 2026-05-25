@@ -196,6 +196,28 @@ template.html 안 CSS 가 처리 (Pretendard + line-height 1.7 + word-break keep
 - HTML 허용 (`<strong>`, `<code>` 등)
 - `detail` = 긴 보조 정보 (사용자 *필요 시* 펼침)
 
+### 7.3 background.detail 작성 룰 — 줄글 wall 금지
+
+`detail` 안 줄글 wall 박제 시 가독성 심각 저하. **chunk 룰 (§2) 엄격 적용**:
+
+- 줄글 paragraph ≥ 3문장 = `<br>` 두 번 또는 paragraph 분리 (`</p><p>`)
+- 항목 3+ = `<ul><li>...</li></ul>` bullet 으로 분해
+- 핵심 키워드 = `<strong>` 강조
+- 모든 정보 한 paragraph 박제 X — *호흡 단위* 분해
+
+### 7.4 좋은 예시
+
+```json
+"detail": "<p><strong>현재 상태:</strong> latency p99 350ms, SLA 200ms 미달.</p><ul><li>읽기 80% (multi-column where)</li><li>쓰기 20% (단일 row insert)</li></ul><p><strong>제약:</strong> downtime 1분 이내, rollback 가능.</p>"
+```
+
+### 7.5 나쁜 예시
+
+```json
+"detail": "현재 상태는 latency p99 가 350ms 로 SLA 200ms 를 미달하고 있고 읽기 비율이 80% 이며 multi-column where 절을 사용하고 쓰기는 20% 이고 단일 row insert 이며 제약은 downtime 1분 이내 rollback 가능 등이 있습니다."
+```
+→ 줄글 wall. *읽기 힘듦*.
+
 ---
 
 ## 8. flow — 전역 흐름 (옵션)
