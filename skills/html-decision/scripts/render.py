@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""html-decision 캔버스 렌더러 (v0.6.0).
+"""html-decision 캔버스 렌더러 (v0.7.0).
 
 사용법:
     python3 render.py --output <path> < spec.json
@@ -7,10 +7,13 @@
 
 JSON spec → HTML 결정 캔버스. template.html 박제 후 placeholders 치환.
 
-v0.6.0 design 원칙:
-- 모든 case (N=0, 1, 2+) 동일 layout (sidebar + 본문 5 영역)
-- sidebar = 순수 목차 (anchor only)
-- 본문 = header / 📋 배경 / 🎯 권장 요약 / Q × N / ✏️ 결과 추출
+v0.7.0 design 원칙:
+- Pretendard typography (line-height 1.7 / 한글 keep-all / 자간 -0.01em)
+- Action title (결론형 Q 제목 의무)
+- 본문 6 영역: header / 📋 배경 / 🔄 흐름 / 🎯 권장 / Q × N / ✏️ 결과 추출
+- 옵션 비교 matrix (heatmap 셀)
+- Pros/Cons split card + weighted bar (자동 계산)
+- 모든 case (N=0, 1, 2+) 동일 layout. flow 미박제 시 empty state
 
 Python 3.8+ stdlib only.
 """
@@ -36,11 +39,11 @@ def esc(s):
     return html_escape(str(s), quote=True)
 
 
-# ---------- per-section renderers ----------
+# ---------- helpers ----------
 
 
 def render_confidence(level, show_label=True):
-    """confidence indicator — ●●●●○ + 라벨."""
+    """confidence indicator — ●●●●○."""
     if level is None:
         return ""
     try:
@@ -54,14 +57,51 @@ def render_confidence(level, show_label=True):
     return f'<span class="conf">{filled}{label_html}</span>'
 
 
+def _level_class(label):
+    """비용 / 위험도 등 한국어 등급 → heat CSS class."""
+    if not label:
+        return ""
+    if label in ("낮", "低", "low"):
+        return "heat-low"
+    if label in ("중", "中", "mid"):
+        return "heat-mid"
+    if label in ("높", "高", "high"):
+        return "heat-high"
+    return ""
+
+
+def _status_class(status):
+    """option.status 텍스트 → heat CSS class. ✓ / ⚠️ / ⚡ prefix 기반."""
+    if not status:
+        return ""
+    s = str(status).strip()
+    if s.startswith("✓") or "정합" in s:
+        return "heat-ok"
+    if s.startswith("⚠"):
+        return "heat-danger"
+    if s.startswith("⚡"):
+        return "heat-bndry"
+    return ""
+
+
+def _to_list(val):
+    """단일 string 또는 list of strings → 항상 list."""
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return [x for x in val if x]
+    return [val] if val else []
+
+
+# ---------- per-section renderers ----------
+
+
 def render_sidebar(data, questions):
-    """sidebar 목차 — 진행 + anchor list (모든 case 동일 구조)."""
+    """sidebar 목차 — 모든 case 동일 (📋 배경 / 🔄 흐름 / 🎯 권장 / Q anchors / ✏️ 결과 추출)."""
     nav_items = ['    <li><a href="#bg">📋 배경</a></li>']
+    nav_items.append('    <li><a href="#flow">🔄 흐름</a></li>')
     if questions:
         nav_items.append('    <li><a href="#rec">🎯 권장 요약</a></li>')
-    else:
-        # N=0 시 권장 요약 anchor 생략 (배경만)
-        pass
     for q in questions:
         q_id = q["id"]
         nav_label = q.get("nav_label") or q.get("title", q_id)
@@ -74,18 +114,18 @@ def render_sidebar(data, questions):
 
 
 def render_bg_card(data):
-    """📋 배경 카드 (본문 위, 항상 박제 — id="bg")."""
+    """📋 배경 카드 (callout-info 스타일, id="bg")."""
     bg = data.get("background") or data.get("ack") or {}
     title = bg.get("title", "📋 배경 — 분석 요약")
     bullets = bg.get("bullets") or bg.get("paragraphs") or []
     detail = bg.get("detail")
 
-    bullets_html = ""
+    body_html = ""
     if bullets:
         items = "\n".join(f"    <li>{b}</li>" for b in bullets)
-        bullets_html = f"  <ul>\n{items}\n  </ul>"
+        body_html = f"  <ul>\n{items}\n  </ul>"
     else:
-        bullets_html = '  <p style="color: var(--muted); font-style: italic; margin: 0;">배경 정보 없음.</p>'
+        body_html = '  <p><em>배경 정보 없음.</em></p>'
 
     detail_html = ""
     if detail:
@@ -97,16 +137,43 @@ def render_bg_card(data):
         )
 
     return (
-        '<section class="bg-card" id="bg">\n'
-        f'  <h3>{title}</h3>\n'
-        f"{bullets_html}\n"
+        '<section class="callout callout-info bg-card" id="bg">\n'
+        f'  <p class="callout-title">{title}</p>\n'
+        f"{body_html}\n"
         f"{detail_html}\n"
         "</section>"
     )
 
 
+def render_flow(data):
+    """🔄 flow 영역 (id="flow"). 박제 시 mermaid, 미박제 시 empty state — 모든 case 동일 layout."""
+    flow = data.get("flow") or {}
+    title = flow.get("title", "🔄 흐름")
+    mermaid_code = flow.get("mermaid")
+
+    if mermaid_code:
+        return (
+            '<section class="flow-area" id="flow">\n'
+            f'  <h3>{esc(title)}</h3>\n'
+            '  <div class="mermaid-wrap">\n'
+            f'    <div class="mermaid">{mermaid_code}</div>\n'
+            "  </div>\n"
+            "</section>"
+        )
+    # empty state — 동일 layout 박제
+    return (
+        '<section class="flow-area" id="flow">\n'
+        f'  <h3>{esc(title)}</h3>\n'
+        '  <div class="empty-state">\n'
+        '    <span class="emoji">📭</span>\n'
+        "    흐름 시각 없음 — 결정 sequence / 의존이 단순한 경우\n"
+        "  </div>\n"
+        "</section>"
+    )
+
+
 def render_dashboard(questions):
-    """🎯 권장 요약 dashboard (N=0 시 empty state)."""
+    """🎯 권장 요약 dashboard (id="rec"). N=0 시 empty state."""
     if not questions:
         return (
             '<section class="dashboard" id="rec">\n'
@@ -164,126 +231,131 @@ def render_dashboard(questions):
     )
 
 
-# axis label 한국어 → level 표기.
-AXIS_LEVEL_LABELS = {1: "낮", 2: "낮", 3: "중", 4: "높", 5: "높"}
-
-
-def _level_class(label):
-    """비용 / 위험도 등 한국어 등급 → CSS class."""
-    if not label:
-        return ""
-    if label in ("낮", "低", "low"):
-        return "low"
-    if label in ("중", "中", "mid"):
-        return "mid"
-    if label in ("높", "高", "high"):
-        return "high"
-    return ""
-
-
-def _status_class(status):
-    """option.status 텍스트 → CSS class. ✓ / ⚠️ / ⚡ prefix 기반."""
-    if not status:
-        return ""
-    s = str(status).strip()
-    if s.startswith("✓") or "정합" in s or "ok" in s.lower():
-        return "ok"
-    if s.startswith("⚠"):
-        return "warn"
-    if s.startswith("⚡"):
-        return "bndry"
-    return ""
-
-
-def render_option_row(opt, recommended_in_table=False):
-    """옵션 비교 표 row."""
-    is_rec = opt.get("recommended", False)
-    rec_class = ' class="rec"' if is_rec else ""
-    star = "★" if is_rec else ""
-    ms = opt.get("matrix_summary") or {}
-    cost = ms.get("cost_level", "")
-    risk = ms.get("risk_level", "")
-    cost_cls = _level_class(cost)
-    risk_cls = _level_class(risk)
-    conf_html = render_confidence(opt.get("confidence"))
-    status = opt.get("status", "")
-    status_cls = _status_class(status)
-
-    label = opt.get("label", "")
-    return (
-        f"    <tr{rec_class}>"
-        f'<td class="star">{star}</td>'
-        f'<td class="opt-name">{label}</td>'
-        f'<td><span class="level {cost_cls}">{cost}</span></td>'
-        f'<td><span class="level {risk_cls}">{risk}</span></td>'
-        f"<td>{conf_html}</td>"
-        f'<td><span class="status {status_cls}">{status}</span></td>'
-        f"</tr>"
-    )
-
-
-def render_options_table(options):
-    """옵션 비교 표 — 옵션 / 비용 / 위험도 / 신뢰도 / 상태 5 column."""
+def render_options_matrix(options):
+    """옵션 비교 matrix — 옵션 / 비용 / 위험도 / 신뢰도 / 상태 (heatmap 셀)."""
     options = [o for o in options if o.get("value") != "other"]
     if not options:
         return ""
-    # 권장 옵션을 첫 row 로
-    rec = [o for o in options if o.get("recommended")]
+    rec_opts = [o for o in options if o.get("recommended")]
     non_rec = [o for o in options if not o.get("recommended")]
-    ordered = rec + non_rec
-    rows = "\n".join(render_option_row(o) for o in ordered)
+    ordered = rec_opts + non_rec
+
+    rows = []
+    for opt in ordered:
+        is_rec = opt.get("recommended", False)
+        rec_class = ' class="rec"' if is_rec else ""
+        star = "★ " if is_rec else ""
+        label = opt.get("label", "")
+        ms = opt.get("matrix_summary") or {}
+        cost = ms.get("cost_level", "")
+        risk = ms.get("risk_level", "")
+        cost_cls = _level_class(cost)
+        risk_cls = _level_class(risk)
+        conf_html = render_confidence(opt.get("confidence"))
+        status = opt.get("status", "")
+        status_cls = _status_class(status)
+        cost_cell = f'<span class="heat {cost_cls}">{cost}</span>' if cost else ""
+        risk_cell = f'<span class="heat {risk_cls}">{risk}</span>' if risk else ""
+        status_cell = f'<span class="heat {status_cls}">{status}</span>' if status else ""
+        rows.append(
+            f"    <tr{rec_class}>"
+            f'<td class="star-cell">{star}</td>'
+            f'<td class="opt-name">{label}</td>'
+            f"<td>{cost_cell}</td>"
+            f"<td>{risk_cell}</td>"
+            f"<td>{conf_html}</td>"
+            f"<td>{status_cell}</td>"
+            f"</tr>"
+        )
     return (
-        '  <table class="options-table">\n'
+        '  <table class="options-matrix">\n'
         '    <thead><tr><th></th><th>옵션</th><th>비용</th><th>위험도</th><th>신뢰도</th><th>상태</th></tr></thead>\n'
         "    <tbody>\n"
-        + rows
+        + "\n".join(rows)
         + "\n    </tbody>\n"
         "  </table>"
     )
 
 
+def render_pros_cons_split(detail):
+    """Pros/Cons split card + weighted bar (자동 계산). detail = {pros, cons, example?}."""
+    if not detail:
+        return ""
+    pros = _to_list(detail.get("pros"))
+    cons = _to_list(detail.get("cons"))
+    example = detail.get("example", "")
+
+    # weighted bar — pros/cons 항목 수 비율 (자동 계산)
+    p_count = len(pros)
+    c_count = len(cons)
+    total = p_count + c_count
+    if total > 0:
+        p_pct = round(p_count / total * 100)
+        c_pct = 100 - p_pct
+    else:
+        p_pct = c_pct = 0
+
+    bar_html = ""
+    if total > 0:
+        bar_html = (
+            '<div class="weighted-bar-wrap">\n'
+            '  <div class="weighted-bar">\n'
+            f'    <div class="weighted-bar-pros" style="width: {p_pct}%"></div>\n'
+            f'    <div class="weighted-bar-cons" style="width: {c_pct}%"></div>\n'
+            "  </div>\n"
+            '  <div class="weighted-bar-label">\n'
+            f'    <span class="pros">✅ Pros {p_pct}% · {p_count}건</span>\n'
+            f'    <span class="cons">⚠️ Cons {c_pct}% · {c_count}건</span>\n'
+            "  </div>\n"
+            "</div>"
+        )
+
+    pros_items = (
+        "\n".join(f"      <li>{p}</li>" for p in pros)
+        if pros
+        else '      <li><em>해당 없음</em></li>'
+    )
+    cons_items = (
+        "\n".join(f"      <li>{c}</li>" for c in cons)
+        if cons
+        else '      <li><em>해당 없음</em></li>'
+    )
+
+    split_html = (
+        '<div class="pros-cons-split">\n'
+        '  <div class="pros-col">\n'
+        '    <h5>✅ Pros</h5>\n'
+        "    <ul>\n"
+        f"{pros_items}\n"
+        "    </ul>\n"
+        "  </div>\n"
+        '  <div class="cons-col">\n'
+        '    <h5>⚠️ Cons</h5>\n'
+        "    <ul>\n"
+        f"{cons_items}\n"
+        "    </ul>\n"
+        "  </div>\n"
+        "</div>"
+    )
+
+    example_html = ""
+    if example:
+        example_html = f'<div class="opt-example"><strong>📌 예시:</strong> {example}</div>'
+
+    parts = [bar_html, split_html, example_html]
+    return "\n".join(p for p in parts if p)
+
+
 def render_option_card(opt):
-    """옵션 detail 카드 (✅ Pros / ⚠️ Cons / 📌 예시)."""
+    """옵션 detail 카드 — head + weighted bar + split + example."""
     is_rec = opt.get("recommended", False)
     rec_cls = " rec" if is_rec else ""
     star = "★ " if is_rec else ""
     label = opt.get("label", "")
     conf_html = render_confidence(opt.get("confidence"))
-
     detail = opt.get("detail") or {}
-    pros = detail.get("pros", "")
-    cons = detail.get("cons", "")
-    example = detail.get("example", "")
 
-    rows = []
-    if pros:
-        # pros 가 list 또는 string 둘 다 허용
-        items = pros if isinstance(pros, list) else [pros]
-        first = True
-        for item in items:
-            prefix = "<strong>Pros</strong> · " if first else ""
-            rows.append(
-                f'        <div class="row pros"><span class="row-icon">✅</span>'
-                f'<span class="row-text">{prefix}{item}</span></div>'
-            )
-            first = False
-    if cons:
-        items = cons if isinstance(cons, list) else [cons]
-        first = True
-        for item in items:
-            prefix = "<strong>Cons</strong> · " if first else ""
-            rows.append(
-                f'        <div class="row cons"><span class="row-icon">⚠️</span>'
-                f'<span class="row-text">{prefix}{item}</span></div>'
-            )
-            first = False
-    if example:
-        rows.append(
-            f'        <div class="row example"><span class="row-icon">📌</span>'
-            f'<span class="row-text"><strong>예시</strong> · {example}</span></div>'
-        )
-
-    rows_html = "\n".join(rows) if rows else ""
+    body = render_pros_cons_split(detail)
 
     return (
         f'      <div class="opt-card{rec_cls}">\n'
@@ -291,21 +363,21 @@ def render_option_card(opt):
         f"          <h4>{star}{label}</h4>\n"
         f'          <span class="opt-conf">{conf_html}</span>\n'
         f"        </div>\n"
-        f"{rows_html}\n"
+        f"        {body}\n"
         f"      </div>"
     )
 
 
 def render_question(q):
-    """단일 결정점 카드 — 권장 mini + 💡 왜 + 옵션 표 + 옵션 detail + 영향 + 선택."""
+    """Q 카드 — h2 + meta(tags) + 권장 mini + 💡 왜 + 옵션 matrix + 옵션 detail + 영향 + 선택."""
     q_id = q["id"]
     title = q.get("title", "")
     desc = q.get("desc", "")
     why = q.get("why", "")
     options = q.get("options") or []
     impact = q.get("impact") or {}
+    tags = q.get("tags") or []
 
-    # 권장 옵션 찾기
     rec_opt = next((o for o in options if o.get("recommended")), None)
 
     parts = [
@@ -314,6 +386,11 @@ def render_question(q):
     ]
     if desc:
         parts.append(f'  <p class="q-desc">{desc}</p>')
+
+    # q-meta (tag list — frameworks / 분류)
+    if tags:
+        tag_html = " ".join(f'<span class="tag">{esc(t)}</span>' for t in tags)
+        parts.append(f'  <div class="q-meta">{tag_html}</div>')
 
     # 🎯 권장 mini-card
     if rec_opt:
@@ -329,7 +406,7 @@ def render_question(q):
 
     # 💡 왜 이 결정 필요
     if why:
-        why_lines = why if isinstance(why, list) else [why]
+        why_lines = _to_list(why)
         why_html = "\n".join(f"    <p>{line}</p>" for line in why_lines)
         parts.append(
             f'  <div class="q-why">\n'
@@ -338,10 +415,10 @@ def render_question(q):
             f"  </div>"
         )
 
-    # 옵션 비교 표
-    options_table = render_options_table(options)
-    if options_table:
-        parts.append(options_table)
+    # 옵션 비교 matrix
+    matrix_html = render_options_matrix(options)
+    if matrix_html:
+        parts.append(matrix_html)
 
     # 옵션 detail 카드 (collapse)
     non_other_opts = [o for o in options if o.get("value") != "other"]
@@ -352,7 +429,7 @@ def render_question(q):
         cards = "\n".join(render_option_card(o) for o in ordered)
         parts.append(
             f'  <details class="option-details">\n'
-            f"    <summary>각 옵션 자세히 (카드 형식)</summary>\n"
+            f"    <summary>각 옵션 자세히 (Pros/Cons split)</summary>\n"
             f'    <div class="detail-body">\n'
             f"{cards}\n"
             f"    </div>\n"
@@ -431,14 +508,16 @@ def build(data):
     # body 영역
     sidebar_nav = render_sidebar(data, questions)
     bg_card = render_bg_card(data)
+    flow_section = render_flow(data)
     dashboard = render_dashboard(questions)
     questions_block = "\n\n".join(render_question(q) for q in questions)
 
-    # Mermaid CDN — impact mermaid 또는 데이터 안 명시 시 활성
+    # Mermaid CDN — flow.mermaid / impact.mermaid 박제 시 자동 활성
+    has_flow_mermaid = bool((data.get("flow") or {}).get("mermaid"))
     has_impact_mermaid = any(
         (q.get("impact") or {}).get("mermaid") for q in questions
     )
-    use_mermaid = bool(data.get("use_mermaid")) or has_impact_mermaid
+    use_mermaid = bool(data.get("use_mermaid")) or has_flow_mermaid or has_impact_mermaid
     mermaid_script = MERMAID_CDN if use_mermaid else ""
 
     # template 로드 + 치환
@@ -452,6 +531,7 @@ def build(data):
         "{{META}}": meta_line,
         "{{SIDEBAR_NAV}}": sidebar_nav,
         "{{BG_CARD}}": bg_card,
+        "{{FLOW}}": flow_section,
         "{{DASHBOARD}}": dashboard,
         "{{QUESTIONS_BLOCK}}": questions_block,
         "{{SOURCE_HTML}}": source_html,
@@ -472,7 +552,7 @@ def build(data):
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="html-decision 캔버스 렌더러 v0.6.0")
+    p = argparse.ArgumentParser(description="html-decision 캔버스 렌더러 v0.7.0")
     p.add_argument("--output", "-o", required=True, help="출력 HTML 경로")
     p.add_argument("--input", "-i", help="JSON spec 파일 (생략 시 stdin)")
     return p.parse_args()
