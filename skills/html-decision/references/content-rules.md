@@ -173,50 +173,99 @@ template.html 안 CSS 가 처리 (Pretendard + line-height 1.7 + word-break keep
 
 ## 7. 배경 카드 (`background`) — 본문 위 영역
 
-본문 상단 callout-info 박스 (id="bg") *항상 박제*. 분석 요약 + (선택) "자세히" collapse.
+본문 상단 `id="bg"` *항상 박제*. **bg-card-stack 구조** (v0.8.0) — TL;DR + KPI stat-tile + 카테고리 callout + chip + 자세히 collapse.
 
-### 7.1 형식
+### 7.1 구조 (모두 optional — Claude 자율 박제)
 
 ```json
 "background": {
-  "title": "📋 배경 — 분석 요약",
-  "bullets": [
-    "context bullet 1",
-    "<strong>강조</strong> 영역",
-    "기타 ..."
-  ],
-  "detail": "자세히 안 펼침 콘텐츠 (선택)"
+  "tldr": "<1줄 thesis>",
+  "kpis": [{"num": "20", "lbl": "decisions", "sub": "confirmed"}, ...],
+  "findings": {"title": "🔍 발견", "bullets": [...]},
+  "root_causes": {"title": "🚨 root cause", "items": [...]},
+  "solution": {"title": "💡 해결 방향", "body": "..."},
+  "risk": {"title": "⚠️ risk", "body": "..."},
+  "principles": {"groups": [{"label": "...", "chips": [...]}]},
+  "detail": "<자세히 collapse 안 HTML>"
 }
 ```
 
-### 7.2 가이드
+★ 7 영역 모두 *optional*. 정보량 따라 Claude 가 자율 박제. 미박제 영역 = 안 보임.
 
-- `bullets` 항목 수 = **3-6 권장** (§2 list 길이)
-- 각 bullet 짧게 (한글 35자 이하 권장)
-- HTML 허용 (`<strong>`, `<code>` 등)
-- `detail` = 긴 보조 정보 (사용자 *필요 시* 펼침)
+### 7.2 영역별 가이드
 
-### 7.3 background.detail 작성 룰 — 줄글 wall 금지
+#### 7.2.1 `tldr` — TL;DR hero
+- **1-2 문장**, 한글 80-120자
+- **결론 + 핵심 근거** (Action title 룰 §1 와 동일)
+- HTML 허용 (`<strong>` 으로 핵심 단어 강조)
+- 예: `"<strong>consolidation paradigm</strong> 채택 — root cause 3종 동시 fix. incremental 만으로 누덕누덕 패치 영구화 risk."`
 
-`detail` 안 줄글 wall 박제 시 가독성 심각 저하. **chunk 룰 (§2) 엄격 적용**:
+#### 7.2.2 `kpis` — KPI stat-tile strip
+- **3-5 tile 권장** (auto-fit grid, 모바일 stack)
+- 줄글 안 *묻힌 숫자* 추출 → tile 격상 (Few/Vercel 패턴)
+- `num` = 큰 숫자 (1.85em, accent 색), `lbl` = label (UPPERCASE), `sub` = 1줄 부연
+- 예: `{"num": "75%", "lbl": "agent autonomous", "sub": "over-reach signal"}`
 
-- 줄글 paragraph ≥ 3문장 = `<br>` 두 번 또는 paragraph 분리 (`</p><p>`)
-- 항목 3+ = `<ul><li>...</li></ul>` bullet 으로 분해
-- 핵심 키워드 = `<strong>` 강조
-- 모든 정보 한 paragraph 박제 X — *호흡 단위* 분해
+#### 7.2.3 `findings` — 🔍 발견 (callout-info)
+- 분석 / 조사 결과 / 관찰 bullets
+- `bullets` = 2-5 항목. nested `<ul>` 안 sub-bullet 허용
+- 핵심 키워드 `<strong>` 강조
 
-### 7.4 좋은 예시
+#### 7.2.4 `root_causes` — 🚨 root cause (callout-warning, numbered)
+- 원인 분석 결과 (3종 ultrathink 패턴)
+- `items` = 2-5 항목. **string** 또는 **{label, sub}** 둘 다 가능
+- `{label, sub}` = `<strong>label</strong> — sub` 박제
+
+#### 7.2.5 `solution` — 💡 해결 방향 (callout-tip)
+- 권장 해결안 1-2 문장
+- `body` (string) 또는 `bullets` (list)
+
+#### 7.2.6 `risk` — ⚠️ risk (callout-danger)
+- 회피 가능 / 비가역 / 부정적 영향
+- `body` (string) 또는 `bullets`
+
+#### 7.2.7 `principles` — 🔒 frozen 원칙 (callout-note + chip)
+- 결정 frozen 사항 / 사용자 메타 원칙
+- `groups` = list of `{label?, chips}`. 다수 그룹 분리 (label 별 chip 묶음)
+- 예: `[{"label": "사용자 요구", "chips": ["원칙1", "원칙2"]}, {"label": "메타", "chips": [...]}]`
+
+### 7.3 박제 판단 (Claude 자율)
+
+| 정보량 | 박제 권장 |
+|---|---|
+| 결정 thesis 명확 | `tldr` 박제 (가장 prominent) |
+| 숫자/KPI 2+ 있음 | `kpis` 박제 (줄글 안 묻힘 방지) |
+| 분석 / 관찰 결과 | `findings` |
+| 원인 분석 (ultrathink) | `root_causes` |
+| 권장 해결안 명확 | `solution` |
+| risk 명시 필요 | `risk` |
+| 사용자 frozen 원칙 | `principles` |
+| 긴 보조 정보 | `detail` (자세히 collapse) |
+
+### 7.4 `detail` (자세히 collapse) — chunk 룰 엄격
+
+긴 보조 정보. *줄글 wall 금지*. HTML 박제 시 다음 룰:
+- 줄글 paragraph 3문장 이상 = `</p><p>` 분리
+- 항목 3+ = `<ul><li>...</li></ul>` 분해
+- 핵심 키워드 = `<strong>`
+- `<h4>` 로 sub-section 분리 가능 (옵션)
+
+### 7.5 좋은 예시 (detail)
 
 ```json
-"detail": "<p><strong>현재 상태:</strong> latency p99 350ms, SLA 200ms 미달.</p><ul><li>읽기 80% (multi-column where)</li><li>쓰기 20% (단일 row insert)</li></ul><p><strong>제약:</strong> downtime 1분 이내, rollback 가능.</p>"
+"detail": "<h4>현재 구조</h4><ul><li><strong>skill 2</strong> — A / B</li><li><strong>reference 5</strong> — ...</li></ul><h4>변경 후</h4><ul><li>...</li></ul>"
 ```
 
-### 7.5 나쁜 예시
+### 7.6 나쁜 예시 (detail) — 줄글 wall
 
 ```json
-"detail": "현재 상태는 latency p99 가 350ms 로 SLA 200ms 를 미달하고 있고 읽기 비율이 80% 이며 multi-column where 절을 사용하고 쓰기는 20% 이고 단일 row insert 이며 제약은 downtime 1분 이내 rollback 가능 등이 있습니다."
+"detail": "현재 구조는 skill 2개 reference 5개 agent 4개 template 4개 lld-checklist 1개로 총 16 file 인데 consolidation 후에는 ..."
 ```
-→ 줄글 wall. *읽기 힘듦*.
+→ 줄글 wall. 분해 의무.
+
+### 7.7 v0.7.x 호환 (fallback)
+
+`tldr` / `kpis` / `findings` 등 모두 미박제 + `background.bullets` 만 박제 시 → 단일 callout-info 박제 (v0.7.x 동작). Claude 가 *간단한 배경* 일 때 활용 가능.
 
 ---
 

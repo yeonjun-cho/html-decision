@@ -113,35 +113,200 @@ def render_sidebar(data, questions):
     return "\n".join(nav_items)
 
 
+def _render_callout_block(cls, icon_title, body_html):
+    """카테고리 callout 한 블록 — title + body. body 는 미리 렌더된 HTML."""
+    return (
+        f'  <section class="callout {cls}">\n'
+        f'    <p class="callout-title">{icon_title}</p>\n'
+        f"{body_html}\n"
+        "  </section>"
+    )
+
+
+def _render_bullet_list(items, ordered=False):
+    """list of strings (또는 list of {label, sub}) → <ul>/<ol>."""
+    if not items:
+        return ""
+    tag = "ol" if ordered else "ul"
+    rows = []
+    for it in items:
+        if isinstance(it, dict):
+            label = it.get("label", "")
+            sub = it.get("sub") or it.get("desc")
+            if sub:
+                rows.append(f"      <li><strong>{label}</strong> — {sub}</li>")
+            else:
+                rows.append(f"      <li>{label}</li>")
+        else:
+            rows.append(f"      <li>{it}</li>")
+    return f"    <{tag}>\n" + "\n".join(rows) + f"\n    </{tag}>"
+
+
+def _render_chip_group(chips):
+    """list of strings → chip-group div."""
+    if not chips:
+        return ""
+    items = " ".join(f'<span class="chip">{esc(c)}</span>' for c in chips)
+    return f'    <div class="chip-group">{items}</div>'
+
+
 def render_bg_card(data):
-    """📋 배경 카드 (callout-info 스타일, id="bg")."""
+    """📋 배경 카드 — bg-card-stack (TL;DR + KPI strip + 카테고리 callout + chip + detail).
+
+    background 안 신설 필드 (v0.8.0):
+    - tldr: string — 1줄 thesis (gradient hero 박제)
+    - kpis: list of {num, lbl, sub?} — stat-tile-strip
+    - findings: {title?, bullets} — 🔍 발견 callout-info
+    - root_causes: {title?, items} — 🚨 root cause callout-warning (numbered)
+    - solution: {title?, body} — 💡 해결 방향 callout-tip
+    - risk: {title?, body} — ⚠️ risk callout-danger
+    - principles: {title?, groups: [{label, chips}]} — 🔒 frozen 원칙 callout-note + chip
+    - detail: string — 자세히 collapse (HTML 허용)
+
+    기존 형식 fallback:
+    - background.bullets / background.title → 단일 callout-info 박제 (v0.7.x 호환)
+    """
     bg = data.get("background") or data.get("ack") or {}
-    title = bg.get("title", "📋 배경 — 분석 요약")
-    bullets = bg.get("bullets") or bg.get("paragraphs") or []
+
+    parts = []
+
+    # 1. TL;DR hero
+    tldr = bg.get("tldr")
+    if tldr:
+        label = bg.get("tldr_label", "📋 배경 — TL;DR")
+        parts.append(
+            '  <div class="bg-tldr">\n'
+            f'    <p class="tldr-label">{label}</p>\n'
+            f'    <p class="tldr-text">{tldr}</p>\n'
+            "  </div>"
+        )
+
+    # 2. KPI stat-tile strip
+    kpis = bg.get("kpis") or []
+    if kpis:
+        tiles = []
+        for k in kpis:
+            num = k.get("num", "")
+            lbl = k.get("lbl", "")
+            sub = k.get("sub", "")
+            sub_html = f'\n      <span class="sub">{sub}</span>' if sub else ""
+            tiles.append(
+                '    <div class="stat-tile">\n'
+                f'      <span class="num">{num}</span>\n'
+                f'      <span class="lbl">{lbl}</span>{sub_html}\n'
+                "    </div>"
+            )
+        parts.append(
+            '  <div class="stat-tile-strip">\n'
+            + "\n".join(tiles)
+            + "\n  </div>"
+        )
+
+    # 3. 🔍 findings (callout-info)
+    findings = bg.get("findings")
+    if findings:
+        title = findings.get("title", "🔍 발견")
+        bullets = findings.get("bullets") or []
+        body = _render_bullet_list(bullets)
+        parts.append(_render_callout_block("callout-info", title, body))
+
+    # 4. 🚨 root_causes (callout-warning, numbered)
+    rc = bg.get("root_causes")
+    if rc:
+        title = rc.get("title", "🚨 root cause")
+        items = rc.get("items") or rc.get("bullets") or []
+        body = _render_bullet_list(items, ordered=True)
+        parts.append(_render_callout_block("callout-warning", title, body))
+
+    # 5. 💡 solution (callout-tip)
+    sol = bg.get("solution")
+    if sol:
+        title = sol.get("title", "💡 해결 방향")
+        body_text = sol.get("body") or sol.get("text") or ""
+        bullets = sol.get("bullets") or []
+        body = (
+            f"    <p>{body_text}</p>" if body_text and not bullets
+            else _render_bullet_list(bullets) if bullets
+            else ""
+        )
+        parts.append(_render_callout_block("callout-tip", title, body))
+
+    # 6. ⚠️ risk (callout-danger)
+    risk = bg.get("risk")
+    if risk:
+        title = risk.get("title", "⚠️ risk")
+        body_text = risk.get("body") or risk.get("text") or ""
+        bullets = risk.get("bullets") or []
+        body = (
+            f"    <p>{body_text}</p>" if body_text and not bullets
+            else _render_bullet_list(bullets) if bullets
+            else ""
+        )
+        parts.append(_render_callout_block("callout-danger", title, body))
+
+    # 7. 🔒 principles (callout-note + chip groups)
+    pr = bg.get("principles")
+    if pr:
+        title = pr.get("title", "🔒 frozen 원칙")
+        groups = pr.get("groups") or []
+        # groups = [{label, chips: [...]}] 또는 단순 chips
+        body_lines = []
+        if not groups and pr.get("chips"):
+            groups = [{"chips": pr["chips"]}]
+        for i, g in enumerate(groups):
+            label = g.get("label")
+            chips = g.get("chips") or []
+            margin = ' style="margin-top: 12px"' if i > 0 else ""
+            if label:
+                body_lines.append(f'    <p{margin}><strong>{label}</strong></p>')
+            elif i == 0:
+                pass
+            body_lines.append(_render_chip_group(chips))
+        body = "\n".join(body_lines)
+        parts.append(_render_callout_block("callout-note", title, body))
+
+    # 8. 자세히 collapse
     detail = bg.get("detail")
-
-    body_html = ""
-    if bullets:
-        items = "\n".join(f"    <li>{b}</li>" for b in bullets)
-        body_html = f"  <ul>\n{items}\n  </ul>"
-    else:
-        body_html = '  <p><em>배경 정보 없음.</em></p>'
-
-    detail_html = ""
     if detail:
-        detail_html = (
+        parts.append(
             "  <details>\n"
             "    <summary>자세히</summary>\n"
             f'    <div class="detail-text">{detail}</div>\n'
             "  </details>"
         )
 
+    # === fallback: 기존 background.bullets / title (v0.7.x 호환) ===
+    has_new = any([tldr, kpis, findings, rc, sol, risk, pr])
+    if not has_new:
+        title = bg.get("title", "📋 배경 — 분석 요약")
+        bullets = bg.get("bullets") or bg.get("paragraphs") or []
+        body_html = ""
+        if bullets:
+            items = "\n".join(f"    <li>{b}</li>" for b in bullets)
+            body_html = f"  <ul>\n{items}\n  </ul>"
+        else:
+            body_html = '  <p><em>배경 정보 없음.</em></p>'
+        detail_html = ""
+        if detail:
+            detail_html = (
+                "  <details>\n"
+                "    <summary>자세히</summary>\n"
+                f'    <div class="detail-text">{detail}</div>\n'
+                "  </details>"
+            )
+        return (
+            '<section class="callout callout-info bg-card" id="bg">\n'
+            f'  <p class="callout-title">{title}</p>\n'
+            f"{body_html}\n"
+            f"{detail_html}\n"
+            "</section>"
+        )
+
+    # 새 형식 — bg-card-stack
     return (
-        '<section class="callout callout-info bg-card" id="bg">\n'
-        f'  <p class="callout-title">{title}</p>\n'
-        f"{body_html}\n"
-        f"{detail_html}\n"
-        "</section>"
+        '<section class="bg-card-stack" id="bg">\n'
+        + "\n\n".join(parts)
+        + "\n</section>"
     )
 
 

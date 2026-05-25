@@ -148,8 +148,102 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 .callout-danger .callout-title, .callout-danger strong, .callout-danger li { color: var(--danger-dark); }
 .callout-note     { border-color: var(--note);      background: var(--note-bg);      color: var(--text); }
 
-/* 📋 배경 카드 = callout-info 변종 */
-.bg-card { /* uses .callout .callout-info */ }
+/* 📋 배경 카드 — bg-card-stack (TL;DR + KPI strip + 카테고리 callout + chip) */
+.bg-card-stack { scroll-margin-top: 20px; margin: 0 0 24px; }
+.bg-card-stack > * + * { margin-top: 12px; }
+
+.bg-tldr {
+  background: linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(16,185,129,0.06) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px 26px;
+  margin: 0;
+}
+.bg-tldr .tldr-label {
+  font-size: 0.72em; color: var(--accent); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 0 0 6px;
+}
+.bg-tldr .tldr-text {
+  font-size: 1.08em; font-weight: 600; color: var(--text);
+  line-height: 1.6; margin: 0;
+}
+.bg-tldr .tldr-text strong { color: var(--accent); }
+
+.stat-tile-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; margin: 0;
+}
+.stat-tile-strip .stat-tile {
+  display: block; text-align: center;
+  padding: 16px 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.stat-tile-strip .stat-tile .num {
+  display: block; font-size: 1.85em; font-weight: 700;
+  color: var(--accent); line-height: 1.1;
+  font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.stat-tile-strip .stat-tile .lbl {
+  display: block; font-size: 0.74em; color: var(--text);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-top: 6px; font-weight: 700;
+}
+.stat-tile-strip .stat-tile .sub {
+  display: block; font-size: 0.74em; color: var(--muted);
+  margin-top: 2px; line-height: 1.4;
+}
+
+.bg-card-stack .chip-group {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 4px 0 0;
+}
+.bg-card-stack .chip {
+  font-size: 0.82em; font-weight: 500;
+  background: rgba(255,255,255,0.55); border: 1px solid currentColor;
+  padding: 4px 11px; border-radius: 999px;
+  opacity: 0.9;
+}
+
+.bg-card-stack .callout-warning ol,
+.bg-card-stack .callout ol { margin: 4px 0 0; padding-left: 22px; }
+.bg-card-stack .callout-warning ol li,
+.bg-card-stack .callout ol li { margin: 5px 0; line-height: 1.7; }
+
+.bg-card-stack > details {
+  margin-top: 14px; padding: 12px 16px;
+  background: var(--note-bg); border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.bg-card-stack > details > summary {
+  cursor: pointer; font-size: 0.86em; color: var(--muted);
+  font-weight: 600; list-style: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.bg-card-stack > details > summary::-webkit-details-marker { display: none; }
+.bg-card-stack > details > summary::before { content: "▶"; font-size: 0.65em; transition: transform 0.15s; }
+.bg-card-stack > details[open] > summary::before { transform: rotate(90deg); }
+.bg-card-stack > details .detail-text {
+  margin-top: 12px; padding: 0 0 0 14px;
+  background: none; border: none;
+  border-left: 2px solid var(--border);
+  font-size: 0.94em; line-height: 1.7;
+  color: var(--text);
+}
+.bg-card-stack > details .detail-text > :first-child { margin-top: 0; }
+.bg-card-stack > details .detail-text > * + * { margin-top: 0.6em; }
+.bg-card-stack > details .detail-text p { margin: 0; }
+.bg-card-stack > details .detail-text ul, .bg-card-stack > details .detail-text ol { margin: 0; padding-left: 20px; }
+.bg-card-stack > details .detail-text li { margin: 4px 0; line-height: 1.65; }
+.bg-card-stack > details .detail-text h4, .bg-card-stack > details .detail-text h5 {
+  margin: 0.9em 0 0.3em; font-weight: 700;
+  font-size: 0.94em; color: var(--text);
+}
+.bg-card-stack > details .detail-text strong { font-weight: 700; }
+.bg-card-stack > details .detail-text code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
 
 /* 🔄 flow */
 .flow-area {

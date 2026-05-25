@@ -57,9 +57,38 @@ Claude 대화 안 *결정 포인트* 의 터미널 표현 한계 해소 + 복잡
   "meta": "<context 부연>",
   "source_html": "<CWD>/.claude-history/html-decision/<filename>.html",
   "background": {
-    "title": "📋 배경 — 분석 요약",
-    "bullets": ["배경 bullet 1", "배경 bullet 2", "..."],
-    "detail": "<선택. <details> 안 펼침 콘텐츠>"
+    "tldr": "<1줄 thesis (큰 폰트 hero, 결론 + 핵심 근거). HTML 허용>",
+    "kpis": [
+      {"num": "20", "lbl": "decisions", "sub": "confirmed"},
+      {"num": "75%", "lbl": "autonomous", "sub": "over-reach"}
+    ],
+    "findings": {
+      "title": "🔍 발견",
+      "bullets": ["<bullet 1>", "<bullet 2>"]
+    },
+    "root_causes": {
+      "title": "🚨 root cause",
+      "items": [
+        {"label": "body 비대화", "sub": "16 file ≈ 3000 line"},
+        "agent algorithm 명시 부족"
+      ]
+    },
+    "solution": {
+      "title": "💡 해결 방향",
+      "body": "<1-2 문장 해결 방향>"
+    },
+    "risk": {
+      "title": "⚠️ risk",
+      "body": "<위험 / 회피 가능 / 비가역 risk>"
+    },
+    "principles": {
+      "title": "🔒 frozen 원칙",
+      "groups": [
+        {"label": "사용자 요구", "chips": ["원칙1", "원칙2"]},
+        {"label": "메타 원칙", "chips": ["원칙A", "원칙B"]}
+      ]
+    },
+    "detail": "<선택. 자세히 collapse — HTML 허용 (chunk 룰 적용)>"
   },
   "flow": {
     "title": "🔄 전체 흐름",
@@ -101,14 +130,24 @@ Claude 대화 안 *결정 포인트* 의 터미널 표현 한계 해소 + 복잡
 }
 ```
 
-### 3.1 신설 / 변경 필드 (v0.7.0)
+### 3.1 신설 / 변경 필드 (v0.8.0)
 
 | 필드 | 위치 | 의미 |
 |---|---|---|
-| `flow` | top-level | 🔄 전역 흐름 Mermaid (사이드바 anchor 항상, 본문 박제는 옵션). 미박제 시 empty state |
-| `question.title` | question | **결론형 action title 의무** — 토픽 X. content-rules.md §1 |
-| `question.tags` | question | (옵션) framework / 분류 / 태그. Q 카드 안 tag chip 박제 |
-| `option.detail.pros` / `cons` | option | **list of strings** 우선 (weighted bar 자동 계산용) |
+| `background.tldr` | background | **1줄 thesis** (gradient hero 박제). 결론 + 핵심 근거 |
+| `background.kpis` | background | KPI stat-tile-strip (큰 숫자 + label + sub). 줄글 안 묻힌 숫자 격상 |
+| `background.findings` | background | 🔍 발견 callout-info (bullets) |
+| `background.root_causes` | background | 🚨 root cause callout-warning (numbered items) |
+| `background.solution` | background | 💡 해결 방향 callout-tip |
+| `background.risk` | background | ⚠️ risk callout-danger |
+| `background.principles` | background | 🔒 frozen 원칙 callout-note + chip groups |
+| `background.detail` | background | (기존) 자세히 collapse |
+| `flow` | top-level | (v0.7.0) 🔄 전역 흐름 Mermaid |
+| `question.title` | question | (v0.7.0) **결론형 action title 의무** |
+| `question.tags` | question | (v0.7.0, 옵션) tag chip |
+| `option.detail.pros` / `cons` | option | (v0.7.0) **list of strings** — weighted bar 자동 계산 |
+
+★ `background.tldr` / `kpis` / `findings` / `root_causes` / `solution` / `risk` / `principles` = **모두 optional**. Claude 가 정보량 따라 자율 박제. 모두 미박제 시 → 기존 `background.bullets` fallback (v0.7.x 호환).
 
 ### 3.2 v0.7.0 design 변경 (스펙 외 영역)
 
