@@ -116,24 +116,25 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 .callout details summary::before { content: "▶"; font-size: 0.65em; transition: transform 0.15s; }
 .callout details[open] summary::before { transform: rotate(90deg); }
 .callout details .detail-text {
-  margin-top: 14px; padding: 20px 24px;
-  background: white;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 8px;
-  font-size: 1rem; line-height: 1.9;
-  color: var(--text);
+  margin-top: 10px;
+  padding: 4px 0 0 14px;
+  border-left: 2px solid currentColor;
+  border-left-color: rgba(0,0,0,0.1);
+  font-size: 0.94em; line-height: 1.7;
+  color: inherit;
 }
-.callout details .detail-text,
-.callout details .detail-text p,
-.callout details .detail-text li,
-.callout details .detail-text strong { color: var(--text); }
-.callout details .detail-text > * + * { margin-top: 1em; }
+.callout details .detail-text > * + * { margin-top: 0.6em; }
 .callout details .detail-text p { margin: 0; }
-.callout details .detail-text ul, .callout details .detail-text ol { margin: 0; padding-left: 24px; }
-.callout details .detail-text li { margin: 7px 0; line-height: 1.85; }
+.callout details .detail-text ul, .callout details .detail-text ol { margin: 0; padding-left: 20px; }
+.callout details .detail-text li { margin: 3px 0; line-height: 1.65; }
 .callout details .detail-text strong { font-weight: 700; }
-.callout details .detail-text code { background: var(--note-bg); padding: 2px 6px; border-radius: 4px; font-size: 0.92em; }
-.callout details .detail-text h4, .callout details .detail-text h5 { margin: 1.2em 0 0.4em; font-weight: 700; color: var(--text); font-size: 1em; }
+.callout details .detail-text code { background: rgba(255,255,255,0.6); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.callout details .detail-text h4, .callout details .detail-text h5 {
+  margin: 0.9em 0 0.3em; font-weight: 700;
+  font-size: 0.92em; opacity: 0.85;
+  text-transform: none; letter-spacing: 0;
+}
+.callout details .detail-text > :first-child { margin-top: 0; }
 
 .callout-info     { border-color: var(--info);      background: var(--info-bg);      color: var(--info-dark); }
 .callout-info .callout-title, .callout-info strong, .callout-info li { color: var(--info-dark); }
