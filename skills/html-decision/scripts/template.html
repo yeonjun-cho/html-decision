@@ -82,10 +82,8 @@ h1, h2, h3, h4, h5 { font-family: inherit; }
 }
 .nav-list a.answered::before { content: "✓ "; color: var(--rec); font-weight: 600; }
 
-/* main — sidebar 다음 가용 폭 활용 + 본문 prose 만 좁게 */
+/* main — 풀폭 통일 (sidebar 다음 가용 폭) */
 .main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 36px 48px 80px; min-width: 0; }
-/* prose 영역 — 한글 가독성 (40-60자/줄) */
-.bg-card, .q-why, .q-rec, .q-desc, .callout p, .question > p { max-width: 70ch; }
 h1 {
   margin: 0 0 6px; font-size: 1.75rem; font-weight: 700;
   line-height: 1.3; letter-spacing: -0.02em;
@@ -121,7 +119,6 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
   margin-top: 10px; padding: 14px 18px;
   background: rgba(255,255,255,0.55); border-radius: 6px;
   font-size: 0.95em; line-height: 1.85;
-  max-width: 70ch;
 }
 .callout details .detail-text > * + * { margin-top: 0.9em; }
 .callout details .detail-text p { margin: 0; }

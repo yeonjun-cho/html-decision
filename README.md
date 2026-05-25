@@ -4,7 +4,7 @@
 
 **`/html-decision <고민>` 으로 명시 호출**. ★ 자동 발동 X. ★ 추가 액션 0 (Claude 가 모든 시각 판단 자동).
 
-[![Version](https://img.shields.io/badge/version-0.7.1-2563eb)](https://github.com/yeonjun-cho/html-decision)
+[![Version](https://img.shields.io/badge/version-0.7.2-2563eb)](https://github.com/yeonjun-cho/html-decision)
 [![License](https://img.shields.io/badge/license-MIT-10b981)](LICENSE)
 
 ---
