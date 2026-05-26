@@ -758,10 +758,10 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 [data-theme="dark"] .zoom-btn { background: var(--card); color: var(--text); }
 [data-theme="dark"] .zoom-btn:hover { background: var(--info-bg); }
 [data-theme="dark"] .gauge::after { background: var(--card); }
-/* Mermaid SVG = 흰 배경 카드 유지 (다이어그램 가독성) */
+/* Mermaid SVG 다크 — mermaid 의 dark theme 색 사용 (카드 배경 = var(--card)) */
 [data-theme="dark"] .flow-area .mermaid-wrap,
 [data-theme="dark"] .q-impact .impact-mermaid {
-  background: #f8fafc;
+  background: var(--card);
 }
 
 /* 테마 토글 버튼 (우하단 fixed) */
@@ -953,9 +953,47 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 1500);
 }
 
+// === Mermaid theme-aware 재 render (theme 토글 감지) ===
 if (typeof mermaid !== 'undefined') {
-  try { mermaid.initialize({ startOnLoad: true, theme: 'default', fontFamily: 'Pretendard Variable, sans-serif' }); }
-  catch (e) { console.error('mermaid init failed', e); }
+  // 원본 source 박제 (mermaid.run() 호출 시 SVG 로 교체되므로 미리 저장)
+  document.querySelectorAll('.mermaid').forEach(el => {
+    if (!el.hasAttribute('data-mermaid-source')) {
+      el.setAttribute('data-mermaid-source', el.textContent.trim());
+    }
+  });
+
+  function renderAllMermaid() {
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: isDark ? 'dark' : 'default',
+        fontFamily: 'Pretendard Variable, sans-serif',
+        securityLevel: 'loose'
+      });
+    } catch (e) { console.error('mermaid init failed', e); return; }
+
+    document.querySelectorAll('.mermaid').forEach(el => {
+      const src = el.getAttribute('data-mermaid-source');
+      if (src) {
+        el.innerHTML = src;
+        el.removeAttribute('data-processed');
+      }
+    });
+    try { mermaid.run(); } catch (e) { console.error('mermaid run failed', e); }
+  }
+
+  renderAllMermaid();
+
+  // [data-theme] 변경 감지 → 재 render
+  new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.attributeName === 'data-theme') {
+        renderAllMermaid();
+        break;
+      }
+    }
+  }).observe(document.documentElement, { attributes: true });
 }
 
 window.addEventListener('load', updateProgress);
