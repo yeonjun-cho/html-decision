@@ -353,7 +353,11 @@ template.html 안 CSS 가 처리 (Pretendard + line-height 1.7 + word-break keep
 | 노드 label 줄바꿈 | `A[Step 1\nrefs]` | `A[Step 1<br/>refs]` 또는 quoted `A["Step 1<br/>refs"]` |
 | dotted arrow label | `A -.text.-> B` | `A -.-> B` (label 제거) |
 | 한글 + 공백 label | `A[전 영역 gate]` | `A["전 영역 gate"]` (quoted) |
+| **엣지 라벨 안 괄호** `(...)` | `S -->\|하이브리드 (권장)\| H[...]` | `S -->\|하이브리드 권장\| H[...]` (괄호 제거, 공백/`·`/`—` 로 대체) |
+| 노드 라벨 안 괄호 | `A[Step (권장)]` | `A["Step (권장)"]` (quoted 필수) |
+| 마름모 라벨 | `D{Q1?}` | `D{"Q1?"}` (quoted 권장) |
 
+★ **엣지 라벨 절대 룰**: `|...|` 안 괄호 `()` = parse error (Mermaid 가 노드 shape 토큰으로 해석). 따옴표로 감쌀 수 없으니 *제거* 만 답.
 ★ 한글 라벨은 *항상* quote 권장.
 
 ---

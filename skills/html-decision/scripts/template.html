@@ -5,8 +5,18 @@
   <title>{{TITLE}}</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   {{MERMAID_SCRIPT}}
+  <script>
+  // FOUC 회피 — render 전 theme 박제 (head 안 inline init). 첫 진입 = OS 모드 따름
+  (function(){
+    var saved = localStorage.getItem('html-decision-theme');
+    var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = (saved === 'light' || saved === 'dark') ? saved : (sysDark ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+  </script>
   <style>
 :root {
+  color-scheme: light;
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
 
@@ -96,7 +106,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
   border-left: 4px solid;
   padding: 14px 18px;
   border-radius: 0 8px 8px 0;
-  margin: 0 0 16px;
+  margin: 0 0 20px;
   font-size: 0.92em;
   line-height: 1.7;
   scroll-margin-top: 20px;
@@ -108,7 +118,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 .callout p:last-child { margin-bottom: 0; }
 .callout ul { margin: 4px 0 0; padding-left: 20px; line-height: 1.75; }
 .callout li { margin: 4px 0; }
-.callout code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.callout code { background: var(--note-bg); color: var(--text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
 .callout strong { font-weight: 700; }
 .callout details { margin-top: 12px; padding-top: 12px; border-top: 1px dashed currentColor; opacity: 0.95; }
 .callout details summary { cursor: pointer; font-size: 0.86em; list-style: none; display: inline-flex; align-items: center; gap: 6px; opacity: 0.85; font-weight: 600; }
@@ -128,7 +138,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 .callout details .detail-text ul, .callout details .detail-text ol { margin: 0; padding-left: 20px; }
 .callout details .detail-text li { margin: 3px 0; line-height: 1.65; }
 .callout details .detail-text strong { font-weight: 700; }
-.callout details .detail-text code { background: rgba(255,255,255,0.6); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.callout details .detail-text code { background: var(--note-bg); color: var(--text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
 .callout details .detail-text h4, .callout details .detail-text h5 {
   margin: 0.9em 0 0.3em; font-weight: 700;
   font-size: 0.92em; opacity: 0.85;
@@ -150,7 +160,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 
 /* 📋 배경 카드 — bg-card-stack (TL;DR + KPI strip + 카테고리 callout + chip) */
 .bg-card-stack { scroll-margin-top: 20px; margin: 0 0 24px; }
-.bg-card-stack > * + * { margin-top: 12px; }
+.bg-card-stack > * + * { margin-top: 20px; }
 
 .bg-tldr {
   background: linear-gradient(135deg, rgba(37,99,235,0.06) 0%, rgba(16,185,129,0.06) 100%);
@@ -243,12 +253,12 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
   font-size: 0.94em; color: var(--text);
 }
 .bg-card-stack > details .detail-text strong { font-weight: 700; }
-.bg-card-stack > details .detail-text code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.bg-card-stack > details .detail-text code { background: var(--note-bg); color: var(--text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
 
 /* 🔄 flow */
 .flow-area {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;
   scroll-margin-top: 20px;
 }
 .flow-area h3 {
@@ -264,7 +274,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 /* 🎯 권장 요약 dashboard */
 .dashboard {
   background: var(--card); border: 2px solid var(--rec);
-  border-radius: 10px; padding: 16px 20px; margin-bottom: 28px;
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 32px;
   scroll-margin-top: 20px;
 }
 .dashboard h3 { margin: 0 0 4px; font-size: 0.95em; color: var(--rec-dark); font-weight: 700; }
@@ -287,7 +297,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 /* Q 카드 */
 .question {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 12px; padding: 24px 26px; margin-bottom: 24px;
+  border-radius: 12px; padding: 24px 26px; margin-bottom: 32px;
   scroll-margin-top: 20px;
 }
 .question > h2 {
@@ -328,7 +338,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 }
 .q-why .why-title { font-weight: 700; color: var(--tip-dark); margin: 0 0 6px; font-size: 0.94em; }
 .q-why p { margin: 4px 0; color: var(--tip-dark); line-height: 1.7; }
-.q-why code { background: white; padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
+.q-why code { background: var(--note-bg); color: var(--text); padding: 1px 5px; border-radius: 3px; font-size: 0.92em; }
 .q-why strong { color: var(--tip-dark); }
 .q-why ul { margin: 4px 0 0; padding-left: 20px; }
 .q-why li { color: var(--tip-dark); margin: 3px 0; line-height: 1.6; }
@@ -551,7 +561,7 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 }
 .q-impact .impact-body ul { margin: 0; padding-left: 20px; }
 .q-impact .impact-body li { margin: 3px 0; }
-.q-impact .impact-body code { background: white; padding: 1px 5px; border-radius: 3px; }
+.q-impact .impact-body code { background: var(--note-bg); color: var(--text); padding: 1px 5px; border-radius: 3px; }
 .q-impact .impact-mermaid { background: white; padding: 12px; border-radius: 6px; margin-top: 8px; overflow-x: auto; }
 
 /* 선택 영역 */
@@ -716,6 +726,63 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 }
 
 .flow-area .mermaid-wrap + .mermaid-wrap { margin-top: 12px; }
+
+/* === 다크 모드 === */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --card: #1e293b;
+  --border: #334155;
+  --border-soft: #273448;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+
+  --info: #60a5fa;      --info-bg: #1e3a5f;      --info-dark: #bfdbfe;
+  --tip: #34d399;       --tip-bg: #064e3b;       --tip-dark: #a7f3d0;
+  --important: #c084fc; --important-bg: #44266b; --important-dark: #d8b4fe;
+  --warning: #fbbf24;   --warning-bg: #4a3413;   --warning-dark: #fef3c7;
+  --danger: #f87171;    --danger-bg: #4c1d1f;    --danger-dark: #fecaca;
+  --note: #94a3b8;      --note-bg: #1e293b;
+
+  --low: #34d399; --low-bg: #064e3b;
+  --mid: #fbbf24; --mid-bg: #4a3413;
+  --high: #f87171; --high-bg: #4c1d1f;
+
+  --rec: #34d399; --rec-bg: #064e3b; --rec-bg-soft: #0a3a2e; --rec-dark: #a7f3d0;
+}
+[data-theme="dark"] .bg-tldr {
+  background: linear-gradient(135deg, rgba(96,165,250,0.12) 0%, rgba(52,211,153,0.12) 100%);
+}
+[data-theme="dark"] .bg-card-stack .chip { background: rgba(255,255,255,0.05); }
+[data-theme="dark"] .zoom-btn { background: var(--card); color: var(--text); }
+[data-theme="dark"] .zoom-btn:hover { background: var(--info-bg); }
+[data-theme="dark"] .gauge::after { background: var(--card); }
+/* Mermaid SVG = 흰 배경 카드 유지 (다이어그램 가독성) */
+[data-theme="dark"] .flow-area .mermaid-wrap,
+[data-theme="dark"] .q-impact .impact-mermaid {
+  background: #f8fafc;
+}
+
+/* 테마 토글 버튼 (우하단 fixed) */
+.theme-toggle {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 22px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 9999;
+  transition: transform 0.2s, background 0.2s;
+  padding: 0;
+}
+.theme-toggle:hover { transform: scale(1.1); }
+[data-theme="dark"] .theme-toggle { box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
@@ -978,6 +1045,44 @@ window.addEventListener('load', () => {
     });
   }, 900);
 });
+
+// === 테마 2-state 토글 (light ↔ dark) ===
+// 첫 진입 = head inline init 가 OS 모드 따름 적용. 토글 시점부터 localStorage 영구 저장.
+(function() {
+  const sysQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function currentTheme() {
+    return document.documentElement.dataset.theme || 'light';
+  }
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('html-decision-theme', theme);
+    updateBtn(theme);
+  }
+  function updateBtn(theme) {
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    btn.title = theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환';
+  }
+
+  const btn = document.createElement('button');
+  btn.className = 'theme-toggle';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', '테마 전환');
+  document.body.appendChild(btn);
+  updateBtn(currentTheme());
+
+  btn.addEventListener('click', () => {
+    applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+  });
+
+  // OS 모드 변경 감지 — 사용자 명시 토글 X 일 때만 자동 반영
+  sysQuery.addEventListener('change', (e) => {
+    if (localStorage.getItem('html-decision-theme')) return;
+    const next = e.matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    updateBtn(next);
+  });
+})();
 </script>
 
 </body>
