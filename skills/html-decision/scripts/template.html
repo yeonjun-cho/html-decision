@@ -643,6 +643,79 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
   .main { padding: 24px 20px 60px; max-width: 100%; }
   html { font-size: 15px; }
 }
+
+/* === Mermaid 확대 (⛶ 버튼 + 모달 + pan/zoom) === */
+.mermaid-wrap, .impact-mermaid { position: relative; }
+.zoom-btn {
+  position: absolute; top: 8px; right: 8px;
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  background: white;
+  border-radius: 6px; cursor: pointer;
+  font-size: 16px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+.zoom-btn:hover { background: var(--info-bg); color: var(--accent); }
+
+.zoom-modal {
+  display: none;
+  position: fixed; top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 10000;
+  overflow: hidden;
+}
+.zoom-modal.open { display: block; }
+.zoom-modal-close {
+  position: fixed; top: 20px; right: 20px;
+  width: 44px; height: 44px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 24px; line-height: 1;
+  z-index: 10001;
+  padding: 0;
+  transition: background 0.15s;
+}
+.zoom-modal-close:hover { background: rgba(255, 255, 255, 0.28); }
+.zoom-modal-hint {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 8px 16px;
+  border-radius: 999px;
+  z-index: 10001;
+  pointer-events: none;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+.zoom-modal-svg-wrap {
+  width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  cursor: grab;
+}
+.zoom-modal.dragging .zoom-modal-svg-wrap { cursor: grabbing; }
+.zoom-modal-svg-wrap > svg {
+  max-width: 92vw; max-height: 92vh;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.flow-area .mermaid-wrap + .mermaid-wrap { margin-top: 12px; }
   </style>
 </head>
 <body>
@@ -819,6 +892,92 @@ if (typeof mermaid !== 'undefined') {
 }
 
 window.addEventListener('load', updateProgress);
+
+// === Mermaid 확대 (⛶ 버튼 + 모달 + pan/zoom) ===
+function expandMermaid(btn) {
+  const wrap = btn.closest('.mermaid-wrap, .impact-mermaid');
+  if (!wrap) return;
+  const svg = wrap.querySelector('svg');
+  if (!svg) { alert('다이어그램이 아직 렌더 중입니다. 잠시 후 다시 시도'); return; }
+
+  const modal = document.createElement('div');
+  modal.className = 'zoom-modal open';
+  modal.innerHTML = `
+    <button class="zoom-modal-close" aria-label="닫기" title="닫기 (ESC)">×</button>
+    <div class="zoom-modal-svg-wrap"></div>
+    <div class="zoom-modal-hint">마우스 휠 = 확대/축소 · 드래그 = 이동 · ESC = 닫기</div>
+  `;
+  const svgWrap = modal.querySelector('.zoom-modal-svg-wrap');
+  const svgClone = svg.cloneNode(true);
+  svgClone.removeAttribute('width');
+  svgClone.removeAttribute('height');
+  svgClone.style.width = 'auto';
+  svgClone.style.height = 'auto';
+  svgWrap.appendChild(svgClone);
+  document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
+
+  let scale = 1, tx = 0, ty = 0;
+  let isDragging = false, startX = 0, startY = 0;
+  function apply() {
+    svgClone.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+  modal.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.97 : 1.03;
+    scale = Math.min(Math.max(scale * delta, 0.3), 8);
+    apply();
+  }, { passive: false });
+  svgWrap.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.zoom-modal-close')) return;
+    isDragging = true;
+    modal.classList.add('dragging');
+    startX = e.clientX - tx;
+    startY = e.clientY - ty;
+    e.preventDefault();
+  });
+  function onMove(e) {
+    if (!isDragging) return;
+    tx = e.clientX - startX;
+    ty = e.clientY - startY;
+    apply();
+  }
+  function onUp() {
+    if (!isDragging) return;
+    isDragging = false;
+    modal.classList.remove('dragging');
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  function close() {
+    modal.remove();
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  }
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+  }
+  document.addEventListener('keydown', onKey);
+  modal.querySelector('.zoom-modal-close').addEventListener('click', close);
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.mermaid-wrap, .impact-mermaid').forEach(wrap => {
+      if (wrap.querySelector('.zoom-btn')) return;
+      const btn = document.createElement('button');
+      btn.className = 'zoom-btn';
+      btn.type = 'button';
+      btn.title = '확대';
+      btn.setAttribute('aria-label', '다이어그램 확대');
+      btn.innerHTML = '⛶';
+      btn.addEventListener('click', (e) => { e.stopPropagation(); expandMermaid(btn); });
+      wrap.appendChild(btn);
+    });
+  }, 900);
+});
 </script>
 
 </body>
