@@ -101,7 +101,7 @@ Claude 대화 안 *결정 포인트* 의 터미널 표현 한계 해소 + 복잡
       "nav_label": "Q1. <짧은 키워드>",
       "desc": "<한 줄 부연>",
       "why": "<💡 왜 이 결정 필요 — 1-3 문장. 결정의 근거·맥락 명시>",
-      "tags": ["<framework / 분류 / 태그>", "..."],
+      "tags": ["<프레임워크 / 분류 / 태그 — 한글 우선>", "..."],
       "impact": {
         "areas": ["<file/모듈/사람>", "..."],
         "mermaid": "<선택. Q 별 의존 flowchart>"
@@ -117,7 +117,7 @@ Claude 대화 안 *결정 포인트* 의 터미널 표현 한계 해소 + 복잡
             "cost_level": "낮|중|높",
             "risk_level": "낮|중|높"
           },
-          "status": "✓ 정합 | ⚠️ violation | ⚡ boundary",
+          "status": "✓ 정합 | ⚠️ 위반 | ⚡ 경계",
           "detail": {
             "pros": ["bullet 1", "bullet 2", "..."],
             "cons": ["bullet 1", "..."],
@@ -210,6 +210,7 @@ HTML 결정 캔버스 생성 완료.
 | Pros/Cons | 권장 옵션 의무. `detail.pros` / `cons` = **list of strings** (weighted bar 자동 계산) |
 | **chunk 룰** | content-rules.md §2 — paragraph / 문장 / bullet / list 길이 |
 | **`background.detail` chunk 의무** | content-rules.md §7.4-7.6. 줄글 wall 절대 금지 — `<h4>` + `<ul>/<ol>` 분해 + `<strong>` 강조. 분량 무관, 정보 unit 2+ 면 분해 |
+| **한국어 우선 박제** | content-rules.md §16. 영어 보존 카테고리 (약어/고유명사/패턴명/코드 entity/신조 기술) 외 한글. 결정 어휘 (chosen/rejected/valid/invalid 등) 100% 한글. 영어 비율 ≤ 20% 목표. ❌ 금지 표현 `consolidation paradigm`, `incremental fix`, `root cause 3종`, `boundary case` 등 — §16.4 참조 |
 | MD 파싱 | paste-back parse rule = `references/output-formats.md` |
 | 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD>-<topic-slug>.html` 절대경로 |
 

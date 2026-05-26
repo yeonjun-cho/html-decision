@@ -391,16 +391,17 @@ template.html 안 CSS 가 처리 (Pretendard + line-height 1.7 + word-break keep
 
 각 옵션의 *상태* — 옵션 비교 matrix 안 우측 column.
 
-| 값 | 의미 | CSS heat |
+| 값 (한글 권장) | 의미 | CSS heat |
 |---|---|---|
-| `"✓ 정합"` | 권장 / framework 정합 / OK | heat-ok (녹) |
-| `"⚠️ violation"` | 명시 위반 | heat-danger (빨) |
+| `"✓ 정합"` | 권장 / 프레임워크 정합 / OK | heat-ok (녹) |
+| `"⚠️ 위반"` | 명시 위반 | heat-danger (빨) |
 | `"⚠️ 비판 미충족"` | 사용자 비판 미해결 | heat-danger (빨) |
-| `"⚡ boundary"` | boundary case / 미해결 영역 | heat-bndry (주) |
-| `"⚡ mismatch"` | 일부 mismatch / over-engineer | heat-bndry (주) |
+| `"⚡ 경계"` | 경계 사례 / 미해결 영역 | heat-bndry (주) |
+| `"⚡ 불일치"` | 일부 불일치 / 과한 설계 | heat-bndry (주) |
 | `"⚡ 모호"` | enum / 정의 모호 | heat-bndry (주) |
 
-★ prefix icon (`✓` / `⚠️` / `⚡`) → render.py 가 CSS class 자동 매핑.
+★ prefix icon (`✓` / `⚠️` / `⚡`) → render.py 가 CSS class 자동 매핑 (텍스트는 영어/한글 무관 동작).
+★ 영어 표현 (`violation` / `boundary` / `mismatch`) 도 동작 — 단 §16 한국어 우선 박제 룰에 따라 한글 권장.
 
 ---
 
@@ -450,3 +451,129 @@ template.html 안 callout 6종 토큰 박제. content-rules 에서 *어떤 의�
 - 명확치 않은 고민 = best-guess 다중 해석 옵션 + 기타 (자동 박제) 활용
 - 한 cycle 안 자체 해결 — HTML 결과로 즉시 응답
 - N=0 (설명용 문서) 도 가능 — 결정점 없이 배경 카드 / flow 만으로 공유 가능
+
+---
+
+## 16. 한국어 우선 박제 — 영어 / 한글 혼용 룰
+
+> ⚠️ **Claude 가 가장 자주 위반하는 영역 2**. 한국 IT 기업 실측 영어 비율 = **12-20%**. 30%+ = 부자연. Claude 가 `consolidation paradigm`, `incremental fix`, `root cause 3종` 같은 표현 박제 시 **반드시 한글로 변환**.
+
+### 16.1 영어 보존 카테고리 (✅ 한글 변환 금지)
+
+| 카테고리 | 예시 |
+|---|---|
+| **표준 약어** | `API` `SDK` `JWT` `JSON` `HTTP` `OAuth` `MSA` `DDD` `OCP` `KPI` `CTR` `URL` |
+| **고유명사 / 제품** | `Claude` `GitHub` `Kafka` `Redis` `PostgreSQL` `Mermaid` `Notion` `Confluence` `JIRA` |
+| **패턴명** | `Facade` `Hexagonal` `Strangler Fig` `Layered Architecture` `Clean Architecture` `Feature Toggle` |
+| **코드 entity** | `drafter` `reviewer` `agent` `port` `adapter` `handler` (코드에 실제 존재) |
+| **신조 기술 용어** | `LLM` `RAG` `MCP` `prompt caching` `tool use` |
+| **수치 단위** | `ms` `KB` `MB` `p99` `QPS` `RPS` `%` |
+| **언어 / 포맷** | `Java` `Python` `Go` `gRPC` `HTML` `Markdown` `YAML` |
+
+### 16.2 한글 변환 카테고리 (🔄 영어로 박제 금지)
+
+| 카테고리 | 예시 |
+|---|---|
+| **일반 동사** | fix → 수정, validate → 검증, deploy → 배포, choose/select → 선택/채택 |
+| **추상 명사** | paradigm → 방식, consolidation → 통합, boundary → 경계, scope → 범위 |
+| **결정 어휘 (의무)** | chosen → 채택, rejected → 기각, valid → 유효, invalid → 무효 |
+| **원인-결과 어휘** | root cause → 근본 원인, mitigation → 완화, consequence → 결과 |
+| **형용사** | incremental → 점진적, strict → 엄격, robust → 견고, stable → 안정 |
+
+### 16.3 외래어 정착 한글 표기 (🔵 한글 외래어로 박제)
+
+- **그대로 한글**: 커밋 / 머지 / 리팩토링 / 마이그레이션 / 디버깅 / 모니터링 / 캐시 / 프레임워크 / 스코프 / 엣지 케이스 / 폴백 / 피처 플래그 / 트레이드오프
+
+### 16.4 ❌ Claude 자주 박는 부자연 표현 → 변환 의무
+
+한국 IT 기업 블로그 18편 분석 결과 **0건** 발견되는 표현들. Claude 가 박으면 *반드시* 한글 변환:
+
+| ❌ Claude 가 박는 형태 | ✅ 한글 변환 |
+|---|---|
+| `consolidation paradigm` | 통합 방식 |
+| `incremental fix` | 점진적 수정 |
+| `root cause 3종` | 근본 원인 3가지 |
+| `boundary case` | 경계 사례 |
+| `valid / invalid` 단독 | 유효 / 무효 |
+| `chosen / rejected` 단독 | 채택 / 기각 |
+| `input contract` | 입력 명세 |
+| `strict whitelist` | 엄격한 허용 목록 |
+| `validity` | 정합성 / 유효성 |
+| `mismatch` | 불일치 |
+| `trade-off analysis` | 장단점 분석 |
+| `failure mode` | 실패 양상 |
+| `single point of failure` | 단일 장애점 (SPOF) |
+| `hypothesis fixation` | 가설 고착 |
+| `local optimization` | 국소 최적화 |
+| `breaking change` | 호환성 깨짐 |
+| `dual writing` | 이중 쓰기 |
+
+### 16.5 첫 등장 병기 룰
+
+생소한 약어 / 영문 용어는 **첫 등장 시** 한글-영문 병기, **이후** 단일 표기.
+
+| 형식 | 예시 |
+|---|---|
+| `한글(English)` | `근본 원인(root cause)`, `프레임워크(framework)` |
+| `English(약어 풀이)` | `ADR(Architecture Decision Record)`, `SDK(Software Development Kit)` |
+| 약어 단독 (정착) | `API`, `JWT`, `JSON` — 풀이 불필요 |
+
+★ *두 번째* 등장부터는 *단일 표기*. 매번 병기 X.
+
+### 16.6 변환 사전 (참조)
+
+| English | 한글 |
+|---|---|
+| approach | 접근 / 접근법 |
+| adopt | 도입 / 채택 |
+| analysis | 분석 |
+| assumption | 가정 / 전제 |
+| breaking change | 호환성 깨짐 |
+| chosen | 채택 |
+| compatibility | 호환성 |
+| complexity | 복잡도 |
+| consequence | 결과 / 영향 |
+| consider | 검토 / 고려 |
+| consolidation | 통합 |
+| context | 배경 / 맥락 |
+| constraint | 제약 |
+| cons | 단점 |
+| criteria | 기준 |
+| decision | 결정 |
+| deferred | 보류 |
+| deploy | 배포 |
+| extensibility | 확장성 |
+| fix | 수정 |
+| flexibility | 유연성 |
+| improvement | 개선 |
+| input | 입력 |
+| invalid | 무효 / 잘못된 |
+| mitigation | 완화 |
+| paradigm | 방식 / 접근법 |
+| performance | 성능 |
+| pros | 장점 |
+| proposed | 제안 |
+| rationale | 근거 |
+| recovery | 복구 |
+| rejected | 기각 / 제외 |
+| reliability | 신뢰성 |
+| review | 검토 / 리뷰 |
+| risk | 위험 |
+| root cause | 근본 원인 |
+| scalability | 확장성 |
+| scope | 범위 |
+| solution | 해결안 / 해결책 |
+| stability | 안정성 |
+| strict | 엄격 |
+| symptom | 증상 |
+| trade-off | 트레이드오프 / 상충 관계 |
+| validate | 검증 |
+| validity | 정합성 / 유효성 |
+| valid | 유효 |
+| workaround | 우회 방안 |
+
+### 16.7 영어 비율 목표
+
+- **전체 단어 중 영어 비율 ≤ 20%** 목표 (한국 IT 기업 실측 평균)
+- 결정 캔버스는 *공유 목적* 이므로 ≤ 15% 권장
+- 코드 영역 (백틱 `<code>` 안) 은 비율 측정 제외

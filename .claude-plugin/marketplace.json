@@ -10,7 +10,7 @@
     {
       "name": "html-decision",
       "description": "고민·결정사항을 HTML 결정 캔버스로 변환. 결정점 식별 → 옵션 도출 → 시각화 → MD 출력.",
-      "version": "0.8.4",
+      "version": "0.8.5",
       "author": {
         "name": "yeonjun-cho",
         "url": "https://github.com/yeonjun-cho"
