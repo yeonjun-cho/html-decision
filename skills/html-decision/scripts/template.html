@@ -214,22 +214,22 @@ p { margin: 0 0 1.2em; line-height: 1.75; }
 .bg-card-stack .callout ol li { margin: 5px 0; line-height: 1.7; }
 
 .bg-card-stack > details {
-  margin-top: 14px; padding: 12px 16px;
-  background: var(--note-bg); border: 1px solid var(--border);
-  border-radius: 8px;
+  margin-top: 14px; padding: 0;
+  background: none; border: none;
 }
 .bg-card-stack > details > summary {
   cursor: pointer; font-size: 0.86em; color: var(--muted);
   font-weight: 600; list-style: none;
   display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 0;
 }
 .bg-card-stack > details > summary::-webkit-details-marker { display: none; }
 .bg-card-stack > details > summary::before { content: "▶"; font-size: 0.65em; transition: transform 0.15s; }
 .bg-card-stack > details[open] > summary::before { transform: rotate(90deg); }
 .bg-card-stack > details .detail-text {
-  margin-top: 12px; padding: 0 0 0 14px;
+  margin-top: 10px; padding: 4px 0 0 14px;
   background: none; border: none;
-  border-left: 2px solid var(--border);
+  border-left: 2px solid rgba(0,0,0,0.1);
   font-size: 0.94em; line-height: 1.7;
   color: var(--text);
 }
