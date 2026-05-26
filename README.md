@@ -4,7 +4,7 @@
 
 **`/html-decision <고민>` 으로 명시 호출**. ★ 자동 발동 X. ★ 추가 액션 0 (Claude 가 모든 시각 판단 자동).
 
-[![Version](https://img.shields.io/badge/version-0.8.1-2563eb)](https://github.com/yeonjun-cho/html-decision)
+[![Version](https://img.shields.io/badge/version-0.8.2-2563eb)](https://github.com/yeonjun-cho/html-decision)
 [![License](https://img.shields.io/badge/license-MIT-10b981)](LICENSE)
 
 ---
@@ -110,7 +110,7 @@ Claude Code 안 슬래시 커맨드로 한 번에 끝.
 ### 결과 흐름
 
 1. Claude 가 JSON spec 작성 (결정점 / 옵션 / Pros/Cons / mermaid 박제 *모두 자율 판단*)
-2. `render.py` 가 HTML 렌더링 → `<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic>.html` 저장
+2. `render.py` 가 HTML 렌더링 → `<CWD>/.claude-history/html-decision/<YYYY-MM-DD>-<topic>.html` 저장
 3. `SendUserFile` 로 파일 전달 — 브라우저에서 열어 옵션 선택
 4. `[생성]` → `[복사]` → 채팅에 다시 붙여넣기
 5. Claude 가 `<!-- html-decision-result -->` 매직 코멘트로 결과 인식 → 다음 단계 진행

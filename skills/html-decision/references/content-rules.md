@@ -242,28 +242,50 @@ template.html 안 CSS 가 처리 (Pretendard + line-height 1.7 + word-break keep
 | 사용자 frozen 원칙 | `principles` |
 | 긴 보조 정보 | `detail` (자세히 collapse) |
 
-### 7.4 `detail` (자세히 collapse) — chunk 룰 엄격
+### 7.4 `detail` (자세히 collapse) — **줄글 wall 절대 금지**
 
-긴 보조 정보. *줄글 wall 금지*. HTML 박제 시 다음 룰:
-- 줄글 paragraph 3문장 이상 = `</p><p>` 분리
-- 항목 3+ = `<ul><li>...</li></ul>` 분해
-- 핵심 키워드 = `<strong>`
-- `<h4>` 로 sub-section 분리 가능 (옵션)
+긴 보조 정보. **HTML 박제 시 다음 룰 엄격 적용** (위반 시 가독성 심각 저하):
 
-### 7.5 좋은 예시 (detail)
+| 트리거 | 처리 |
+|---|---|
+| 한 paragraph 안 `/` `+` `;` 구분자 3+ | `<ul><li>` 분해 |
+| 한 paragraph 안 `→` `=` `vs` 다중 인과 | `<ol>` step 분해 |
+| 한 paragraph 안 `(1)(2)(3)` 번호 압축 | `<ol>` 분해 |
+| paragraph 3문장 이상 | `</p><p>` 분리 |
+| 항목 3+ parallel | `<ul><li>` 분해 |
+| 시간 / 단계 순서 | `<ol>` numbered list |
+| 같은 카테고리 정보 다수 | `<h4>` sub-heading 분리 |
+| 핵심 키워드 | `<strong>` 강조 |
+
+### 7.5 좋은 예시 (detail) — 사용자 case 기반
 
 ```json
-"detail": "<h4>현재 구조</h4><ul><li><strong>skill 2</strong> — A / B</li><li><strong>reference 5</strong> — ...</li></ul><h4>변경 후</h4><ul><li>...</li></ul>"
+"detail": "<h4>framework 현재 구성 (16 file)</h4><ul><li><strong>skill body 2</strong> — bdd-to-lld + refine-lld</li><li><strong>reference 5</strong> — architecture / adr-classification / decision-loop / distribution / examples</li><li><strong>agent 4</strong> — drafter + 3 reviewer</li><li><strong>template 4</strong> — lld + task-plan + decisions + backlog</li><li><strong>lld-checklist.json 1</strong></li></ul><h4>consolidation 후 예상 구조</h4><ul><li><strong>skill 2</strong> 그대로</li><li><strong>reference 5 → 3</strong> — architecture-rules / decision-rules 통합 / examples</li><li><strong>agent 4</strong> 그대로 — 단 §1 input contract strict + §N algorithm pseudocode 추가</li><li><strong>template 4</strong> 그대로</li></ul><p><strong>결과:</strong> 14 → 12 file. body line ~50% 감소.</p><h4>5 결정 의존 sequence</h4><ol><li><strong>Q1</strong> — paradigm anchor</li><li><strong>Q2</strong> (input contract) <strong>+ Q3</strong> (body consolidation) — root cause direct fix</li><li><strong>Q4</strong> — PoC violation 처리</li><li><strong>Q5</strong> — commit + work lifecycle</li></ol>"
 ```
 
-### 7.6 나쁜 예시 (detail) — 줄글 wall
+→ ✅ `<h4>` 3개 sub-section 분리 / `<ul>` 5+4 bullet / `<ol>` 4 step / `<strong>` 키워드 강조 / `<p>` 결론 분리
+
+### 7.6 나쁜 예시 (detail) — ❌ 줄글 wall
 
 ```json
-"detail": "현재 구조는 skill 2개 reference 5개 agent 4개 template 4개 lld-checklist 1개로 총 16 file 인데 consolidation 후에는 ..."
+"detail": "framework 16 file 구성 — skill body 2 (bdd-to-lld + refine-lld) / reference 5 (...) / agent 4 (drafter + 3 reviewer) / template 4 (...) / lld-checklist.json 1.\n\nconsolidation 후 예상 구조 — skill 2 그대로 / reference 5 → 3 (...) / agent 4 그대로 / template 4 그대로. 총 14 → 12 file, body line ~50% 감소.\n\n5 결정 의존 sequence — Q1 paradigm anchor → Q2 (input contract) + Q3 (body consolidation) root cause direct fix → Q4 (PoC violation 처리) → Q5 (commit + work lifecycle)."
 ```
-→ 줄글 wall. 분해 의무.
 
-### 7.7 v0.7.x 호환 (fallback)
+→ ❌ **금지**. paragraph 안 `/` 4+ inline 압축 / `→` 인과 chain / 시각 분해 X. 사용자가 "가독성 쓰레기" 평가.
+
+### 7.7 다른 영역의 줄글 분해 룰 (§2 chunk 룰 적용)
+
+`background.findings.bullets` / `background.root_causes.items` / `background.detail` 등 **모든 텍스트 영역** 동일:
+
+| 안티패턴 | 변환 |
+|---|---|
+| `(1)X (2)Y (3)Z` 번호 압축 | `<ol>` 분해 |
+| `A / B / C / D` 슬래시 압축 ≥ 3 | `<ul>` 분해 |
+| `A + B + C` 더하기 압축 ≥ 3 | `<ul>` 분해 |
+| `A → B → C → D` 인과 chain | `<ol>` step 분해 또는 flow Mermaid |
+| `A; B; C` 세미콜론 압축 ≥ 3 | `<ul>` 분해 |
+
+### 7.8 v0.7.x 호환 (fallback)
 
 `tldr` / `kpis` / `findings` 등 모두 미박제 + `background.bullets` 만 박제 시 → 단일 callout-info 박제 (v0.7.x 동작). Claude 가 *간단한 배경* 일 때 활용 가능.
 

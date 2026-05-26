@@ -166,7 +166,7 @@ Claude 대화 안 *결정 포인트* 의 터미널 표현 한계 해소 + 복잡
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/html-decision/scripts/render.py" \
-  --output "<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html" \
+  --output "<CWD>/.claude-history/html-decision/<YYYY-MM-DD>-<topic-slug>.html" \
   <<'HTML_DECISION_SPEC_EOF'
 {...JSON spec...}
 HTML_DECISION_SPEC_EOF
@@ -210,7 +210,7 @@ HTML 결정 캔버스 생성 완료.
 | Pros/Cons | 권장 옵션 의무. `detail.pros` / `cons` = **list of strings** (weighted bar 자동 계산) |
 | **chunk 룰** | content-rules.md §2 — paragraph / 문장 / bullet / list 길이 |
 | MD 파싱 | paste-back parse rule = `references/output-formats.md` |
-| 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD-HH>-<topic-slug>.html` 절대경로 |
+| 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD>-<topic-slug>.html` 절대경로 |
 
 ---
 
