@@ -244,6 +244,8 @@ template.html 안 CSS 가 처리 (Pretendard + line-height 1.7 + word-break keep
 
 ### 7.4 `detail` (자세히 collapse) — **줄글 wall 절대 금지**
 
+> ⚠️ **Claude 가 가장 자주 위반하는 영역**. *분량 무관* — 200자 이하 detail 도 정보 unit 2+ 면 *반드시* 분해. §7.5 예시 패턴 강제 박제.
+
 긴 보조 정보. **HTML 박제 시 다음 룰 엄격 적용** (위반 시 가독성 심각 저하):
 
 | 트리거 | 처리 |

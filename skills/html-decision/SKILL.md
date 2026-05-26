@@ -88,7 +88,7 @@ Claude 대화 안 *결정 포인트* 의 터미널 표현 한계 해소 + 복잡
         {"label": "메타 원칙", "chips": ["원칙A", "원칙B"]}
       ]
     },
-    "detail": "<선택. 자세히 collapse — HTML 허용 (chunk 룰 적용)>"
+    "detail": "<h4>section 제목 1</h4><ul><li><strong>키워드</strong> — 부연</li><li><strong>키워드</strong> — 부연</li></ul><h4>section 제목 2</h4><ul><li>...</li></ul><p><strong>결론:</strong> ...</p>"
   },
   "flow": {
     "title": "🔄 전체 흐름",
@@ -209,6 +209,7 @@ HTML 결정 캔버스 생성 완료.
 | matrix_summary | `cost_level` + `risk_level` 의무 (옵션 비교 matrix 활용) |
 | Pros/Cons | 권장 옵션 의무. `detail.pros` / `cons` = **list of strings** (weighted bar 자동 계산) |
 | **chunk 룰** | content-rules.md §2 — paragraph / 문장 / bullet / list 길이 |
+| **`background.detail` chunk 의무** | content-rules.md §7.4-7.6. 줄글 wall 절대 금지 — `<h4>` + `<ul>/<ol>` 분해 + `<strong>` 강조. 분량 무관, 정보 unit 2+ 면 분해 |
 | MD 파싱 | paste-back parse rule = `references/output-formats.md` |
 | 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD>-<topic-slug>.html` 절대경로 |
 
