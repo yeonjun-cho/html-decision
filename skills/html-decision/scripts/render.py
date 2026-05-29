@@ -716,6 +716,58 @@ def build(data):
     return result
 
 
+def ensure_gitignore(output_path):
+    """프로젝트의 .gitignore 에 `.claude-history/` 가 없으면 추가.
+
+    - output_path 에서 `.claude-history` 의 부모를 프로젝트 root 후보로 잡고
+    - 거기서 위로 올라가며 `.git` 디렉토리(=git root)를 찾는다.
+    - git repo 가 아니면 아무것도 안 함 (불필요한 .gitignore 생성 방지).
+    - 이미 `.claude-history` 를 무시하는 라인이 있으면 그대로 둔다.
+    """
+    try:
+        output_path = Path(output_path).resolve()
+
+        # `.claude-history` 부모 = 프로젝트 root 후보
+        root = None
+        for parent in output_path.parents:
+            if parent.name == ".claude-history":
+                root = parent.parent
+                break
+        if root is None:
+            root = output_path.parent
+
+        # 위로 올라가며 git root 탐색
+        git_root = None
+        for cand in [root, *root.parents]:
+            if (cand / ".git").exists():
+                git_root = cand
+                break
+        if git_root is None:
+            return  # git repo 아님 — skip
+
+        gitignore = git_root / ".gitignore"
+        covered = {".claude-history", ".claude-history/", "/.claude-history", "/.claude-history/"}
+
+        if gitignore.exists():
+            lines = gitignore.read_text(encoding="utf-8").splitlines()
+            for ln in lines:
+                s = ln.strip()
+                if s in covered or s.startswith(".claude-history"):
+                    return  # 이미 무시됨
+            # 없으면 append (끝 줄바꿈 보장)
+            existing = gitignore.read_text(encoding="utf-8")
+            sep = "" if existing.endswith("\n") or existing == "" else "\n"
+            with gitignore.open("a", encoding="utf-8") as f:
+                f.write(f"{sep}.claude-history/\n")
+            sys.stderr.write(f"ℹ️  .gitignore 에 .claude-history/ 추가 ({gitignore})\n")
+        else:
+            gitignore.write_text(".claude-history/\n", encoding="utf-8")
+            sys.stderr.write(f"ℹ️  .gitignore 생성 + .claude-history/ 추가 ({gitignore})\n")
+    except Exception as e:
+        # gitignore 처리 실패는 렌더 자체를 막지 않는다
+        sys.stderr.write(f"warning: .gitignore 처리 실패: {e}\n")
+
+
 def parse_args():
     p = argparse.ArgumentParser(description="html-decision 캔버스 렌더러 v0.7.0")
     p.add_argument("--output", "-o", required=True, help="출력 HTML 경로")
@@ -741,6 +793,7 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
+    ensure_gitignore(output_path)
     print(f"✅ {output_path} ({len(html.splitlines())} 줄)")
 
 

@@ -213,6 +213,7 @@ HTML 결정 캔버스 생성 완료.
 | **한국어 우선 박제** | content-rules.md §16. 영어 보존 카테고리 (약어/고유명사/패턴명/코드 entity/신조 기술) 외 한글. 결정 어휘 (chosen/rejected/valid/invalid 등) 100% 한글. 영어 비율 ≤ 20% 목표. ❌ 금지 표현 `consolidation paradigm`, `incremental fix`, `root cause 3종`, `boundary case` 등 — §16.4 참조 |
 | MD 파싱 | paste-back parse rule = `references/output-formats.md` |
 | 저장 경로 | `<CWD>/.claude-history/html-decision/<YYYY-MM-DD>-<topic-slug>.html` 절대경로 |
+| `.gitignore` 자동 | render.py 가 output 쓸 때 git repo 의 `.gitignore` 에 `.claude-history/` 없으면 자동 추가 (git repo 아니면 skip). Claude 별도 작업 X |
 
 ---
 
